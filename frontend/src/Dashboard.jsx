@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "./components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "./components/ui/tabs";
 import { Alert, AlertDescription, AlertTitle } from "./components/ui/alert";
-import { Loader2, AlertCircle } from "lucide-react";
+import { Loader2, AlertCircle, Sparkles } from "lucide-react";
 
 // Modular sub-components
 import { MetricsCards } from "./components/dashboard/MetricsCards";
@@ -10,6 +10,7 @@ import { AllocationsTable } from "./components/dashboard/AllocationsTable";
 import { ExamsTable } from "./components/dashboard/ExamsTable";
 import { RoomsTable } from "./components/dashboard/RoomsTable";
 import { FacultyTable } from "./components/dashboard/FacultyTable";
+import { AIAuditor } from "./components/dashboard/AIAuditor";
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("schedule");
@@ -135,10 +136,11 @@ export default function Dashboard() {
             <TabsTrigger value="exams">Exams</TabsTrigger>
             <TabsTrigger value="rooms">Rooms</TabsTrigger>
             <TabsTrigger value="faculty">Faculty</TabsTrigger>
+            <TabsTrigger value="ai-insights" className="font-medium gap-1"><Sparkles className="w-3 h-3" />AI Auditor</TabsTrigger>
           </TabsList>
           
           <TabsContent value="schedule" className="space-y-4">
-            <AllocationsTable richAllocations={richAllocations} />
+            <AllocationsTable richAllocations={richAllocations} onRefresh={fetchData} />
           </TabsContent>
 
           <TabsContent value="exams" className="space-y-4">
@@ -151,6 +153,10 @@ export default function Dashboard() {
 
           <TabsContent value="faculty" className="space-y-4">
             <FacultyTable faculty={data.faculty} />
+          </TabsContent>
+
+          <TabsContent value="ai-insights" className="space-y-4">
+            <AIAuditor />
           </TabsContent>
         </Tabs>
 
