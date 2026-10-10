@@ -8,9 +8,10 @@ import { FacultyDirectory } from "./components/dashboard/FacultyDirectory";
 import { RoomsDirectory } from "./components/dashboard/RoomsDirectory";
 import { ExamsDatabase } from "./components/dashboard/ExamsDatabase";
 import { AIAuditor } from "./components/dashboard/AIAuditor";
+import { ExportPDFModal } from "./components/dashboard/ExportPDFModal";
 import { fetchExams, fetchRooms, fetchFaculty, fetchAllocations, generateSchedule } from "./api";
 
-export default function Dashboard() {
+export default function Dashboard({ onLogout }) {
   const [data, setData] = useState({
     exams: [],
     rooms: [],
@@ -22,8 +23,8 @@ export default function Dashboard() {
   const [error, setError] = useState(null);
   const [currentPage, setCurrentPage] = useState("matrix");
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (showLoader = true) => {
+    if (showLoader) setLoading(true);
     try {
       const [examsRes, roomsRes, facultyRes, allocRes] = await Promise.all([
         fetchExams(),
@@ -38,12 +39,12 @@ export default function Dashboard() {
         faculty: facultyRes,
         allocations: allocRes
       });
-      setError(null);
+      if (showLoader) setError(null);
     } catch (err) {
       setError("Failed to fetch dashboard data. Make sure the backend is running.");
       console.error(err);
     } finally {
-      setLoading(false);
+      if (showLoader) setLoading(false);
     }
   };
 
@@ -55,8 +56,12 @@ export default function Dashboard() {
     setGenerating(true);
     setError(null);
     try {
-      await generateSchedule();
-      await fetchData();
+      const res = await generateSchedule();
+      await fetchData(false); // fetchData without loader so it's seamless
+      
+      if (res.partialSuccess && res.errors) {
+        setError("PARTIAL SCHEDULE GENERATED WITH CONFLICTS:\n\n" + res.errors.join('\n\n'));
+      }
     } catch (err) {
       setError(err.message);
     } finally {
@@ -87,9 +92,7 @@ export default function Dashboard() {
       <aside className="w-80 border-r border-border/50 bg-muted/10 flex flex-col h-full z-10 shrink-0">
         <div className="p-6 pb-4 border-b border-border/50 bg-background/50 backdrop-blur-sm">
           <div className="flex items-center gap-2 mb-1">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground shadow-sm">
-              <Sparkles className="w-4 h-4" />
-            </div>
+            <img src="/logo.png" alt="Logo" className="w-8 h-auto" />
             <h1 className="text-xl font-bold tracking-tight">RITI Scheduler</h1>
           </div>
           <p className="text-xs text-muted-foreground">Command Center</p>
@@ -109,10 +112,19 @@ export default function Dashboard() {
             )}
           </Button>
 
+          {data.allocations.length > 0 && (
+            <ExportPDFModal 
+              data={data} 
+              richAllocations={richAllocations} 
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+            />
+          )}
+
           {error && (
             <Alert variant="destructive" className="bg-destructive/10">
               <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-xs">{error}</AlertDescription>
+              <AlertDescription className="text-xs whitespace-pre-wrap">{error}</AlertDescription>
             </Alert>
           )}
 
@@ -179,21 +191,30 @@ export default function Dashboard() {
             {currentPage === 'rooms' && 'Rooms & Capacities'}
             {currentPage === 'exams' && 'Master Exam Database'}
           </h2>
-          <Dialog>
-            <DialogTrigger className="inline-flex items-center justify-center rounded-md text-sm font-medium h-8 px-3 ml-4 bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border border-indigo-500/20 hover:text-indigo-600 transition-colors cursor-pointer">
-              <Sparkles className="w-3.5 h-3.5 mr-2" /> AI Co-Pilot
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-              <AIAuditor />
-            </DialogContent>
-          </Dialog>
+          <div className="flex items-center gap-4">
+            <Dialog>
+              <DialogTrigger className="inline-flex items-center justify-center whitespace-nowrap rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border h-9 px-3 text-sm bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border-indigo-500/20 hover:text-indigo-600 cursor-pointer">
+                <Sparkles className="w-3.5 h-3.5 mr-2" /> AI Co-Pilot
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+                <AIAuditor />
+              </DialogContent>
+            </Dialog>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onLogout}
+            >
+              Sign Out
+            </Button>
+          </div>
         </div>
 
         <div className="flex-1 flex flex-col overflow-hidden">
-          {currentPage === 'matrix' && <div className="flex-1 overflow-hidden p-6"><GanttSchedule allocations={richAllocations} /></div>}
-          {currentPage === 'faculty' && <FacultyDirectory faculty={data.faculty} allocations={richAllocations} refreshData={fetchData} />}
-          {currentPage === 'rooms' && <RoomsDirectory rooms={data.rooms} allocations={richAllocations} refreshData={fetchData} />}
-          {currentPage === 'exams' && <ExamsDatabase exams={data.exams} allocations={richAllocations} refreshData={fetchData} />}
+          {currentPage === 'matrix' && <div className="flex-1 overflow-hidden p-6"><GanttSchedule allocations={richAllocations} refreshData={() => fetchData(false)} /></div>}
+          {currentPage === 'faculty' && <FacultyDirectory faculty={data.faculty} allocations={richAllocations} refreshData={() => fetchData(false)} />}
+          {currentPage === 'rooms' && <RoomsDirectory rooms={data.rooms} allocations={richAllocations} refreshData={() => fetchData(false)} />}
+          {currentPage === 'exams' && <ExamsDatabase exams={data.exams} allocations={richAllocations} refreshData={() => fetchData(false)} />}
         </div>
       </main>
     </div>

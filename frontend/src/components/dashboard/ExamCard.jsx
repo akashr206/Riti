@@ -28,7 +28,11 @@ export function ExamCard({ alloc }) {
                 {alloc.assignedStudents || 0}/{room.capacity}
               </span>
             )}
-            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.5)] shrink-0" />
+            {alloc.status === 'partial' ? (
+              <div className="w-1.5 h-1.5 rounded-full bg-amber-500/80 shadow-[0_0_8px_rgba(245,158,11,0.5)] shrink-0" title="Partial Allocation" />
+            ) : (
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/80 shadow-[0_0_8px_rgba(16,185,129,0.5)] shrink-0" />
+            )}
           </div>
         </div>
 

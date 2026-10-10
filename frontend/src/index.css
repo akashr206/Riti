@@ -181,3 +181,70 @@
     @apply bg-background text-foreground;
   }
 }
+
+@media print {
+  aside, 
+  header, 
+  button, 
+  [role="dialog"] {
+    display: none !important;
+  }
+
+  body, html, #root, .overflow-hidden {
+    height: auto !important;
+    overflow: visible !important;
+    display: block !important;
+    background-color: white !important;
+  }
+
+  main {
+    width: 100% !important;
+    position: relative !important;
+    padding: 10mm !important;
+    overflow: visible !important;
+    background-color: white !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+  }
+
+  #gantt-schedule-container {
+    overflow: visible !important;
+    width: max-content !important;
+    max-width: 100% !important;
+    display: block !important;
+    margin: 0 auto !important;
+  }
+
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  .gantt-anim {
+    opacity: 1 !important;
+    transform: none !important;
+  }
+
+  .flex, .flex-none, .shrink-0 {
+    flex-shrink: 0 !important;
+  }
+
+  @page {
+    size: landscape;
+    margin: 0mm;
+  }
+}
+
+/* PDF Export Transparency Overrides */
+.exporting-pdf,
+.exporting-pdf .gantt-page-chunk,
+.exporting-pdf .bg-background,
+.exporting-pdf .bg-zinc-50,
+.exporting-pdf .bg-muted\/40,
+.exporting-pdf .bg-muted\/10,
+.exporting-pdf .bg-muted\/95,
+.exporting-pdf .bg-background\/95,
+.exporting-pdf .dark\:bg-zinc-900\/50 {
+    background-color: transparent !important;
+}

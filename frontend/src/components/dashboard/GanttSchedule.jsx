@@ -3,6 +3,7 @@ import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ExamCard } from "./ExamCard";
 import { SeatMatrixModal } from "./SeatMatrixModal";
+import { EmergencySwapModal } from "./EmergencySwapModal";
 
 const parseTime = (str) => {
     if (!str) return 0;
@@ -22,20 +23,35 @@ const formatTimeShort = (mins) => {
     return `${h.toString().padStart(2, "0")}:${m.toString().padStart(2, "0")}`;
 };
 
-export function GanttSchedule({ allocations }) {
+export function GanttSchedule({ allocations, refreshData }) {
     const containerRef = useRef();
     const [selectedAlloc, setSelectedAlloc] = useState(null);
+    const [swapConfig, setSwapConfig] = useState(null);
 
     useGSAP(
         () => {
             if (allocations && allocations.length > 0) {
-                gsap.from(".gantt-anim", {
-                    x: -20,
-                    opacity: 0,
-                    duration: 0.4,
-                    stagger: 0.03,
-                    ease: "power2.out",
+                const tl = gsap.timeline({
+                    defaults: { ease: "power3.out" },
                 });
+
+                tl.from(".date-header", {
+                    y: -10,
+                    opacity: 0,
+                    duration: 0.5,
+                    stagger: 0.1,
+                    clearProps: "all",
+                }).from(
+                    ".gantt-anim",
+                    {
+                        x: -15,
+                        opacity: 0,
+                        duration: 0.5,
+                        stagger: 0.04,
+                        clearProps: "all",
+                    },
+                    "-=0.3",
+                );
             }
         },
         { dependencies: [allocations], scope: containerRef },
@@ -54,8 +70,15 @@ export function GanttSchedule({ allocations }) {
     const sortedDates = Object.keys(groupedByDate).sort();
 
     return (
-        <div className="overflow-x-auto pb-12 h-full flex-1" ref={containerRef}>
-            <div className="flex flex-col gap-12">
+        <div
+            id="gantt-schedule-container"
+            className="overflow-x-auto pb-12 h-full flex-1"
+            ref={containerRef}
+        >
+            <div
+                id="gantt-inner-wrapper"
+                className="flex flex-col gap-12 bg-background p-4 min-w-max"
+            >
                 {sortedDates.map((date) => {
                     const dateAllocations = groupedByDate[date];
                     const rooms = [
@@ -71,19 +94,14 @@ export function GanttSchedule({ allocations }) {
 
                     dateAllocations.forEach((a) => {
                         const start = parseTime(a.exam.startTime);
-                        const durationMins = (a.exam.duration || 3) * 60;
+                        const durationMins = a.exam.durationMinutes || 180;
                         const end = start + durationMins;
                         if (start < minStart) minStart = start;
                         if (end > maxEnd) maxEnd = end;
                     });
 
-                    minStart = Math.floor(minStart / 60) * 60;
-                    maxEnd = Math.ceil(maxEnd / 60) * 60;
-
-                    if (minStart >= maxEnd) {
-                        minStart = 9 * 60;
-                        maxEnd = 17 * 60;
-                    }
+                    minStart = Math.min(Math.floor(minStart / 60) * 60, 9 * 60);
+                    maxEnd = Math.max(Math.ceil(maxEnd / 60) * 60, 17 * 60);
 
                     const timeSlots = [];
                     for (let t = minStart; t < maxEnd; t += 60) {
@@ -96,19 +114,38 @@ export function GanttSchedule({ allocations }) {
 
                     const slotWidthPerHour = 120;
 
-                    return (
-                        <div key={date} className="flex flex-col">
-                            <h3 className="text-xl font-bold text-foreground mb-4 sticky left-0 px-2">
-                                {new Date(date).toLocaleDateString(undefined, {
-                                    weekday: "long",
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                })}
+                    const roomChunks = [];
+                    for (let i = 0; i < rooms.length; i += 5) {
+                        roomChunks.push(rooms.slice(i, i + 5));
+                    }
+
+                    return roomChunks.map((chunkRooms, chunkIdx) => (
+                        <div
+                            key={`${date}-${chunkIdx}`}
+                            className="flex flex-col gantt-page-chunk print:break-inside-avoid print:break-after-page print:mb-0 mb-12 bg-background p-4 min-w-max"
+                        >
+                            <h3 className="text-xl font-bold text-foreground mb-4 sticky left-0 px-2 date-header flex items-center justify-between">
+                                <span>
+                                    {new Date(date).toLocaleDateString(
+                                        undefined,
+                                        {
+                                            weekday: "long",
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                        },
+                                    )}
+                                </span>
+                                {roomChunks.length > 1 && (
+                                    <span className="text-sm font-normal text-muted-foreground ml-4">
+                                        (Part {chunkIdx + 1} of{" "}
+                                        {roomChunks.length})
+                                    </span>
+                                )}
                             </h3>
-                            <div className="inline-block min-w-max bg-card rounded-none border border-border relative">
-                                <div className="flex border-b border-border bg-muted/20 sticky top-0 z-20">
-                                    <div className="w-40 shrink-0 font-bold text-muted-foreground text-xs uppercase tracking-wider flex items-center p-3 border-r border-border sticky left-0 bg-muted/95 backdrop-blur z-30">
+                            <div className="inline-block min-w-max bg-card print:bg-transparent rounded-none border border-border relative">
+                                <div className="flex border-b border-border bg-muted/20 print:bg-transparent sticky top-0 z-20">
+                                    <div className="w-40 min-w-[160px] max-w-[160px] flex-none font-bold text-muted-foreground text-xs uppercase tracking-wider flex items-center p-3 border-r border-border sticky left-0 bg-muted/95 print:bg-transparent backdrop-blur z-30 overflow-hidden">
                                         Rooms
                                     </div>
                                     <div className="flex">
@@ -118,7 +155,7 @@ export function GanttSchedule({ allocations }) {
                                                 style={{
                                                     width: slotWidthPerHour,
                                                 }}
-                                                className="shrink-0 font-semibold text-foreground text-sm p-3 border-r border-border relative bg-background"
+                                                className="shrink-0 font-semibold text-foreground text-sm p-3 border-r border-border relative bg-background print:bg-transparent"
                                             >
                                                 {ts.shortStr}
                                             </div>
@@ -127,7 +164,7 @@ export function GanttSchedule({ allocations }) {
                                 </div>
 
                                 <div className="flex flex-col">
-                                    {rooms.map((room, i) => {
+                                    {chunkRooms.map((room, i) => {
                                         const roomAllocations =
                                             dateAllocations.filter(
                                                 (a) => a.room?.name === room,
@@ -146,7 +183,8 @@ export function GanttSchedule({ allocations }) {
                                                 alloc.exam.startTime,
                                             );
                                             const durationMins =
-                                                (alloc.exam.duration || 3) * 60;
+                                                alloc.exam.durationMinutes ||
+                                                180;
 
                                             if (startMins > currentMins) {
                                                 blocks.push({
@@ -177,16 +215,57 @@ export function GanttSchedule({ allocations }) {
                                             });
                                         }
 
+                                        let maxOverlapCount = 1;
+                                        blocks.forEach((block) => {
+                                            if (block.type === "exam") {
+                                                const overlappingExams =
+                                                    blocks.filter(
+                                                        (b) =>
+                                                            b.type === "exam" &&
+                                                            Math.max(
+                                                                b.startMins,
+                                                                block.startMins,
+                                                            ) <
+                                                                Math.min(
+                                                                    b.startMins +
+                                                                        b.durationMins,
+                                                                    block.startMins +
+                                                                        block.durationMins,
+                                                                ),
+                                                    );
+                                                if (
+                                                    overlappingExams.length >
+                                                    maxOverlapCount
+                                                ) {
+                                                    maxOverlapCount =
+                                                        overlappingExams.length;
+                                                }
+                                            }
+                                        });
+
+                                        const TRACK_HEIGHT = 120;
+                                        const rowMinHeight = Math.max(
+                                            TRACK_HEIGHT,
+                                            maxOverlapCount * TRACK_HEIGHT,
+                                        );
+
                                         return (
                                             <div
                                                 key={room}
-                                                className={`flex gantt-anim ${i !== rooms.length - 1 ? "border-b border-border" : ""}`}
+                                                className={`flex gantt-anim print:break-inside-avoid ${i !== chunkRooms.length - 1 ? "border-b border-border" : ""}`}
                                             >
-                                                <div className="w-40 shrink-0 font-semibold text-foreground text-sm p-3 border-r border-border flex items-center justify-center bg-muted/10 sticky left-0 z-10">
-                                                    {room}
+                                                <div className="w-40 min-w-[160px] max-w-[160px] flex-none font-semibold text-foreground text-sm p-3 border-r border-border flex items-center justify-center bg-muted/10 print:bg-transparent sticky left-0 z-10 overflow-hidden text-center">
+                                                    <span className="truncate">
+                                                        {room}
+                                                    </span>
                                                 </div>
-                                                <div className="flex-1 flex relative min-h-[120px]">
-                                                    <div className="flex w-full">
+                                                <div
+                                                    className="flex relative"
+                                                    style={{
+                                                        minHeight: `${rowMinHeight}px`,
+                                                    }}
+                                                >
+                                                    <div className="flex">
                                                         {timeSlots.map((ts) => (
                                                             <div
                                                                 key={
@@ -220,7 +299,7 @@ export function GanttSchedule({ allocations }) {
                                                                     return (
                                                                         <div
                                                                             key={`empty-${idx}`}
-                                                                            className="absolute top-0 bottom-0 z-0 flex items-center justify-center pointer-events-auto bg-background/95 backdrop-blur-sm"
+                                                                            className="absolute top-0 bottom-0 z-0 flex items-center justify-center pointer-events-auto bg-background/95 print:bg-transparent backdrop-blur-sm"
                                                                             style={{
                                                                                 left: leftOffset,
                                                                                 width: cardWidth,
@@ -232,6 +311,33 @@ export function GanttSchedule({ allocations }) {
                                                                         </div>
                                                                     );
                                                                 } else {
+                                                                    const overlappingExams =
+                                                                        blocks.filter(
+                                                                            (
+                                                                                b,
+                                                                            ) =>
+                                                                                b.type ===
+                                                                                    "exam" &&
+                                                                                Math.max(
+                                                                                    b.startMins,
+                                                                                    block.startMins,
+                                                                                ) <
+                                                                                    Math.min(
+                                                                                        b.startMins +
+                                                                                            b.durationMins,
+                                                                                        block.startMins +
+                                                                                            block.durationMins,
+                                                                                    ),
+                                                                        );
+                                                                    const overlapCount =
+                                                                        overlappingExams.length;
+                                                                    const overlapIndex =
+                                                                        overlappingExams.indexOf(
+                                                                            block,
+                                                                        );
+                                                                    const topOffset = `${(100 / overlapCount) * overlapIndex}%`;
+                                                                    const height = `${100 / overlapCount}%`;
+
                                                                     return (
                                                                         <div
                                                                             key={
@@ -239,12 +345,18 @@ export function GanttSchedule({ allocations }) {
                                                                                     .alloc
                                                                                     .id
                                                                             }
-                                                                            className="absolute top-0 bottom-0 z-10 border-r border-l border-border bg-card hover:z-20 transition-all pointer-events-auto cursor-pointer"
+                                                                            className="absolute z-10 border-r border-l border-border bg-card print:bg-transparent hover:z-20 transition-all pointer-events-auto cursor-pointer"
                                                                             style={{
                                                                                 left: leftOffset,
                                                                                 width: cardWidth,
+                                                                                top: topOffset,
+                                                                                height: height,
                                                                             }}
-                                                                            onClick={() => setSelectedAlloc(block.alloc)}
+                                                                            onClick={() =>
+                                                                                setSelectedAlloc(
+                                                                                    block.alloc,
+                                                                                )
+                                                                            }
                                                                         >
                                                                             <ExamCard
                                                                                 alloc={
@@ -264,13 +376,28 @@ export function GanttSchedule({ allocations }) {
                                 </div>
                             </div>
                         </div>
-                    );
+                    ));
                 })}
             </div>
-            <SeatMatrixModal 
-                open={!!selectedAlloc} 
-                onOpenChange={(val) => !val && setSelectedAlloc(null)} 
-                alloc={selectedAlloc} 
+            <SeatMatrixModal
+                open={!!selectedAlloc}
+                onOpenChange={(val) => !val && setSelectedAlloc(null)}
+                alloc={selectedAlloc}
+                allAllocations={allocations}
+                onSwapClick={(type) =>
+                    setSwapConfig({ alloc: selectedAlloc, type })
+                }
+            />
+            <EmergencySwapModal
+                open={!!swapConfig}
+                onOpenChange={(val) => !val && setSwapConfig(null)}
+                alloc={swapConfig?.alloc}
+                disruptionType={swapConfig?.type}
+                onSuccess={() => {
+                    setSwapConfig(null);
+                    setSelectedAlloc(null);
+                    refreshData && refreshData();
+                }}
             />
         </div>
     );
