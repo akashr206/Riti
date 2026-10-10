@@ -1,42 +1,59 @@
 import { API_BASE_URL } from "./config";
 
+const getHeaders = () => {
+  const headers = { "Content-Type": "application/json" };
+  const token = localStorage.getItem("riti_token");
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+};
+
 // Helper function to handle response errors
 const handleResponse = async (res) => {
   const data = await res.json();
   if (!res.ok) {
+    if (res.status === 401 || res.status === 403) {
+      localStorage.removeItem("riti_token");
+      // Optional: force reload to push user to login screen
+      window.location.reload();
+    }
     throw new Error(data.message || data.error || data.errors?.join(", ") || "API Request Failed");
   }
   return data;
 };
 
 // GET endpoints
-export const fetchExams = () => fetch(`${API_BASE_URL}/exams`).then(res => res.json());
-export const fetchRooms = () => fetch(`${API_BASE_URL}/rooms`).then(res => res.json());
-export const fetchFaculty = () => fetch(`${API_BASE_URL}/faculty`).then(res => res.json());
-export const fetchAllocations = () => fetch(`${API_BASE_URL}/allocations`).then(res => res.json());
+export const fetchExams = () => fetch(`${API_BASE_URL}/exams`, { headers: getHeaders() }).then(res => res.json());
+export const fetchRooms = () => fetch(`${API_BASE_URL}/rooms`, { headers: getHeaders() }).then(res => res.json());
+export const fetchFaculty = () => fetch(`${API_BASE_URL}/faculty`, { headers: getHeaders() }).then(res => res.json());
+export const fetchAllocations = () => fetch(`${API_BASE_URL}/allocations`, { headers: getHeaders() }).then(res => res.json());
 
 // Generic CRUD
-export const createRecord = (table, data) => fetch(`${API_BASE_URL}/${table}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(handleResponse);
-export const updateRecord = (table, id, data) => fetch(`${API_BASE_URL}/${table}/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(handleResponse);
-export const deleteRecord = (table, id) => fetch(`${API_BASE_URL}/${table}/${id}`, { method: "DELETE" }).then(handleResponse);
+export const createRecord = (table, data) => fetch(`${API_BASE_URL}/${table}`, { method: "POST", headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse);
+export const updateRecord = (table, id, data) => fetch(`${API_BASE_URL}/${table}/${id}`, { method: "PUT", headers: getHeaders(), body: JSON.stringify(data) }).then(handleResponse);
+export const deleteRecord = (table, id) => fetch(`${API_BASE_URL}/${table}/${id}`, { method: "DELETE", headers: getHeaders() }).then(handleResponse);
 
 // POST endpoints
+export const login = (data) => 
+  fetch(`${API_BASE_URL}/login`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(data) }).then(handleResponse);
+
 export const generateSchedule = () => 
-  fetch(`${API_BASE_URL}/schedule/generate`, { method: "POST" }).then(handleResponse);
+  fetch(`${API_BASE_URL}/schedule/generate`, { method: "POST", headers: getHeaders() }).then(handleResponse);
 
 export const suggestRepair = (allocationId, disruptionType) => 
   fetch(`${API_BASE_URL}/schedule/repair/suggest`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getHeaders(),
     body: JSON.stringify({ allocationId, disruptionType })
   }).then(handleResponse);
 
 export const applyRepair = (allocationId, disruptionType, replaceWithId) => 
   fetch(`${API_BASE_URL}/schedule/repair/apply`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getHeaders(),
     body: JSON.stringify({ allocationId, disruptionType, replaceWithId })
   }).then(handleResponse);
 
 export const generateInsights = () => 
-  fetch(`${API_BASE_URL}/schedule/insights`, { method: "POST" }).then(handleResponse);
+  fetch(`${API_BASE_URL}/schedule/insights`, { method: "POST", headers: getHeaders() }).then(handleResponse);
