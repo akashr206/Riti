@@ -92,6 +92,16 @@ export function EntityEditor({ open, setOpen, entityType, initialData, onSaved }
               <Input type="number" value={formData.accessibleSeats ?? ""} onChange={e => setFormData({...formData, accessibleSeats: e.target.value === "" ? "" : parseInt(e.target.value)})} />
             </div>
           </div>
+          <div className="flex items-center space-x-2 pt-2">
+            <input 
+              type="checkbox" 
+              id="isAvailable" 
+              checked={formData.isAvailable !== false} 
+              onChange={e => setFormData({...formData, isAvailable: e.target.checked})}
+              className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+            />
+            <Label htmlFor="isAvailable" className="cursor-pointer">Room is Available for Scheduling</Label>
+          </div>
         </>
       );
     }
@@ -109,6 +119,16 @@ export function EntityEditor({ open, setOpen, entityType, initialData, onSaved }
           <div className="space-y-2">
             <Label>Taught Subjects (Comma separated)</Label>
             <Input placeholder="e.g. CS101,CS102" value={formData.taughtSubjects || ""} onChange={e => setFormData({...formData, taughtSubjects: e.target.value})} />
+          </div>
+          <div className="flex items-center space-x-2 pt-2">
+            <input 
+              type="checkbox" 
+              id="isFacultyAvailable" 
+              checked={formData.isAvailable !== false} 
+              onChange={e => setFormData({...formData, isAvailable: e.target.checked})}
+              className="rounded border-input text-primary focus:ring-primary h-4 w-4"
+            />
+            <Label htmlFor="isFacultyAvailable" className="cursor-pointer">Lecturer is Available</Label>
           </div>
         </>
       );

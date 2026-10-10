@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Button } from "../ui/button";
+import { Button, buttonVariants } from "../ui/button";
 import {
     Dialog,
     DialogContent,
@@ -182,9 +182,11 @@ export function ExportPDFModal({
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger className="inline-flex items-center justify-start whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-input bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 h-9 px-4 py-2 w-full mt-2 cursor-pointer">
-                <Download className="w-4 h-4 mr-2 text-muted-foreground" />
-                Export to PDF
+            <DialogTrigger asChild>
+                <Button size="lg" variant="outline">
+                    <Download className="w-4 h-4" />
+                    Export to PDF
+                </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md">
                 <DialogHeader>

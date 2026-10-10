@@ -3,7 +3,7 @@ function parseTime(timeStr) {
   return hours * 60 + minutes;
 }
 
-export function isOverlap(date1, start1, duration1, date2, start2, duration2) {
+export function isOverlap(date1, start1, duration1, date2, start2, duration2, bufferMinutes = 0) {
   if (date1 !== date2) return false;
   
   const startMin1 = parseTime(start1);
@@ -12,7 +12,7 @@ export function isOverlap(date1, start1, duration1, date2, start2, duration2) {
   const startMin2 = parseTime(start2);
   const endMin2 = startMin2 + duration2;
   
-  return startMin1 < endMin2 && startMin2 < endMin1;
+  return (startMin1 < endMin2 + bufferMinutes) && (startMin2 < endMin1 + bufferMinutes);
 }
 
 export async function generateSchedule(exams, rooms, faculty) {
@@ -34,6 +34,7 @@ export async function generateSchedule(exams, rooms, faculty) {
     const availableRooms = [];
     for (const room of rooms) {
       if (room.capacity <= 0) continue;
+      if (room.isAvailable === false) continue;
 
       let usedCapacity = 0;
       let usedPwd = 0;
@@ -88,14 +89,17 @@ export async function generateSchedule(exams, rooms, faculty) {
     }
 
     const requiredFacultyCount = assignedRooms.length;
+    const FACULTY_TRANSIT_BUFFER_MINS = 60; // 60 mins for sheet submission & travel
+
     const availableFaculty = faculty.filter(f => {
-      if (!f.isAvailable) return false;
+      if (f.isAvailable === false) return false;
       
       const isBusy = allocations.some(alloc => 
         alloc.facultyId === f.id && 
         isOverlap(
           exam.examDate, exam.startTime, exam.durationMinutes,
-          alloc.examDate, alloc.startTime, alloc.durationMinutes
+          alloc.examDate, alloc.startTime, alloc.durationMinutes,
+          FACULTY_TRANSIT_BUFFER_MINS
         )
       );
       return !isBusy;

@@ -59,6 +59,11 @@ export function RoomsDirectory({ rooms, allocations, refreshData }) {
               <div className="mb-6">
                 <Badge variant="outline" className="mb-3 font-mono text-[10px] tracking-wider text-muted-foreground">{String(room.id).substring(0, 8)}</Badge>
                 <h3 className="text-xl font-bold text-foreground tracking-tight">{room.name}</h3>
+                <div className="mt-2">
+                  <Badge variant={room.isAvailable !== false ? "outline" : "destructive"} className={`text-[10px] uppercase tracking-wider ${room.isAvailable !== false ? 'text-emerald-500 border-emerald-500/20 bg-emerald-500/10' : ''}`}>
+                    {room.isAvailable !== false ? "Available" : "Maintenance"}
+                  </Badge>
+                </div>
               </div>
 
               <div className="space-y-3 pt-4 border-t border-border/50">

@@ -15,10 +15,10 @@ export function ExamCard({ alloc }) {
         <div className="flex justify-between items-start gap-2">
           <div className="space-y-1">
             <h3 className="text-base font-bold tracking-tight leading-none text-foreground">
-              {exam.courseCode}
+              {exam.courseName}
             </h3>
             <p className="text-[11px] font-medium text-muted-foreground line-clamp-1">
-              {exam.courseName}
+              {exam.courseCode}
             </p>
           </div>
           {/* Status & Capacity */}

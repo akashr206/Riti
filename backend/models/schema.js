@@ -6,6 +6,7 @@ export const rooms = pgTable('rooms', {
   capacity: integer('capacity').notNull(),
   accessibleSeats: integer('accessible_seats').default(0),
   isAccessible: boolean('is_accessible').default(false),
+  isAvailable: boolean('is_available').default(true),
   createdAt: timestamp('created_at').defaultNow()
 });
 

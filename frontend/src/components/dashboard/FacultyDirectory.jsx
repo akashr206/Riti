@@ -63,7 +63,9 @@ export function FacultyDirectory({ faculty, allocations, refreshData }) {
                     <p className="text-xs text-muted-foreground">{fac.department}</p>
                   </div>
                 </div>
-                {fac.assignedExams.length > 3 ? (
+                {fac.isAvailable === false ? (
+                  <Badge variant="destructive" className="text-[10px] uppercase tracking-wider bg-red-500/10 text-red-500 border-red-500/20">Unavailable</Badge>
+                ) : fac.assignedExams.length > 3 ? (
                   <Badge variant="destructive" className="text-[10px] uppercase tracking-wider">High Load</Badge>
                 ) : (
                   <Badge variant="secondary" className="text-[10px] uppercase tracking-wider bg-emerald-500/10 text-emerald-600">Available</Badge>
