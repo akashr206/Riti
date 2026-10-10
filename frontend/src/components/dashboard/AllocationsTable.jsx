@@ -13,6 +13,8 @@ import {
   DialogFooter,
 } from "../ui/dialog";
 
+import { suggestRepair, applyRepair } from "../../api";
+
 export function AllocationsTable({ richAllocations, onRefresh }) {
   const [disruptedAlloc, setDisruptedAlloc] = useState(null);
   const [disruptionType, setDisruptionType] = useState(null); // 'faculty' or 'room'
@@ -28,12 +30,7 @@ export function AllocationsTable({ richAllocations, onRefresh }) {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:5000/api/schedule/repair/suggest", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ allocationId: alloc.id, disruptionType: type })
-      });
-      const data = await res.json();
+      const data = await suggestRepair(alloc.id, type);
       if (data.success) {
         setSuggestion(data.suggestion);
       } else {
@@ -50,18 +47,10 @@ export function AllocationsTable({ richAllocations, onRefresh }) {
     if (!suggestion) return;
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:5000/api/schedule/repair/apply", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          allocationId: disruptedAlloc.id,
-          disruptionType: suggestion.type,
-          replaceWithId: suggestion.replaceWithId
-        })
-      });
-      const data = await res.json();
+      const data = await applyRepair(disruptedAlloc.id, disruptionType, suggestion.replaceWithId);
       if (data.success) {
         setDisruptedAlloc(null);
+        setSuggestion(null);
         if (onRefresh) onRefresh();
       } else {
         setError(data.error || "Failed to apply repair.");

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui
 import { Button } from "../ui/button";
 import { Loader2, Sparkles, AlertCircle, CheckCircle2 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
+import { generateInsights } from "../../api";
 
 export function AIAuditor() {
   const [report, setReport] = useState(null);
@@ -13,10 +14,7 @@ export function AIAuditor() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("http://localhost:5000/api/schedule/insights", {
-        method: "POST"
-      });
-      const data = await res.json();
+      const data = await generateInsights();
       if (data.success) {
         setReport(data.report);
       } else {

@@ -12,6 +12,8 @@ import { RoomsTable } from "./components/dashboard/RoomsTable";
 import { FacultyTable } from "./components/dashboard/FacultyTable";
 import { AIAuditor } from "./components/dashboard/AIAuditor";
 
+import { fetchExams, fetchRooms, fetchFaculty, fetchAllocations, generateSchedule } from "./api";
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("schedule");
   const [data, setData] = useState({
@@ -24,23 +26,21 @@ export default function Dashboard() {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState(null);
 
-  const API_BASE = "http://localhost:5000/api";
-
   const fetchData = async () => {
     setLoading(true);
     try {
       const [examsRes, roomsRes, facultyRes, allocRes] = await Promise.all([
-        fetch(`${API_BASE}/exams`),
-        fetch(`${API_BASE}/rooms`),
-        fetch(`${API_BASE}/faculty`),
-        fetch(`${API_BASE}/allocations`),
+        fetchExams(),
+        fetchRooms(),
+        fetchFaculty(),
+        fetchAllocations(),
       ]);
       
       setData({
-        exams: await examsRes.json(),
-        rooms: await roomsRes.json(),
-        faculty: await facultyRes.json(),
-        allocations: await allocRes.json()
+        exams: examsRes,
+        rooms: roomsRes,
+        faculty: facultyRes,
+        allocations: allocRes
       });
       setError(null);
     } catch (err) {
@@ -59,15 +59,7 @@ export default function Dashboard() {
     setGenerating(true);
     setError(null);
     try {
-      const res = await fetch(`${API_BASE}/schedule/generate`, {
-        method: "POST"
-      });
-      const result = await res.json();
-      
-      if (!res.ok) {
-        throw new Error(result.errors ? result.errors.join(", ") : result.error);
-      }
-      
+      await generateSchedule();
       await fetchData();
       setActiveTab("schedule");
     } catch (err) {
