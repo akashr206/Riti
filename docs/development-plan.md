@@ -7,9 +7,9 @@ The overall development budget is approximately 20 hours. We will follow these p
 - **Tasks:**
   - [x] Configure frontend (Vite, React, Tailwind v4, Shadcn)
   - [x] Configure backend (Express, Neon DB serverless)
-  - [ ] Design database schema for Exams, Rooms, Faculty, Allocations, and Constraints
-  - [ ] Implement robust seed data generation
-  - [ ] Create basic CRUD endpoints
+  - [x] Design database schema for Exams, Rooms, Faculty, Allocations, and Constraints
+  - [x] Implement robust seed data generation
+  - [x] Create basic CRUD endpoints
 - **Completion Condition:** Application starts successfully, DB is accessible, seeded data is retrievable via backend.
 
 ## Phase 2 — Core Solver Engine
@@ -26,20 +26,20 @@ The overall development budget is approximately 20 hours. We will follow these p
 - **Tasks:**
   - [x] Build UI to view and manage exams, rooms, and faculty.
   - [x] Connect dashboard to backend scheduling API.
-  - [ ] Visualize schedule results, loading states, and errors clearly.
+  - [x] Visualize schedule results, loading states, and errors clearly.
 - **Completion Condition:** Administrator can initiate scheduling and review results through the UI.
 
 ## Phase 4 — High-Impact Features
 - **Goal:** Emergency replacement and AI integration.
 - **Tasks:**
-  - [ ] Implement emergency faculty replacement workflow (minimal-change repair strategy).
-  - [ ] Integrate MiMo LLM API for descriptive schedule summaries and insights.
+  - [x] Implement emergency faculty replacement workflow (minimal-change repair strategy).
+  - [x] Integrate MiMo LLM API for descriptive schedule summaries and insights.
 - **Completion Condition:** Emergency workflow works for valid scenarios. AI insights run correctly on verified schedule data.
 
 ## Phase 5 — Testing, Polish, and Demonstration
 - **Goal:** Stabilize the system.
 - **Tasks:**
-  - [ ] Fix critical defects and verify main workflows.
-  - [ ] Ensure invalid schedules cannot be published.
-  - [ ] Prepare reproducible demo data and rehearse.
+  - [x] Fix critical defects and verify main workflows.
+  - [x] Ensure invalid schedules cannot be published.
+  - [x] Prepare reproducible demo data and rehearse.
 - **Completion Condition:** Complete demonstration runs reliably from a clean setup.
