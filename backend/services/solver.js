@@ -42,7 +42,8 @@ export async function generateSchedule(exams, rooms, faculty) {
 
     for (const room of availableRooms) {
       if (unallocatedStudents <= 0) break;
-      assignedRooms.push(room);
+      const assignedCount = Math.min(unallocatedStudents, room.capacity);
+      assignedRooms.push({ room, assignedCount });
       unallocatedStudents -= room.capacity;
     }
 
@@ -65,19 +66,27 @@ export async function generateSchedule(exams, rooms, faculty) {
       return !isBusy;
     });
 
+    // Load-balancing: Sort available faculty by their current assignment count (ascending)
+    availableFaculty.sort((a, b) => {
+      const aLoad = allocations.filter(alloc => alloc.facultyId === a.id).length;
+      const bLoad = allocations.filter(alloc => alloc.facultyId === b.id).length;
+      return aLoad - bLoad;
+    });
+
     if (availableFaculty.length < requiredFacultyCount) {
       errors.push(`Infeasible: Not enough available faculty for exam ${exam.courseCode} on ${exam.examDate}. Needed ${requiredFacultyCount}, got ${availableFaculty.length}.`);
       continue;
     }
 
     for (let i = 0; i < assignedRooms.length; i++) {
-      const assignedRoom = assignedRooms[i];
+      const { room: assignedRoom, assignedCount } = assignedRooms[i];
       const assignedFaculty = availableFaculty[i];
       
       allocations.push({
         examId: exam.id,
         roomId: assignedRoom.id,
         facultyId: assignedFaculty.id,
+        assignedStudents: assignedCount,
         status: 'scheduled',
         examDate: exam.examDate,
         startTime: exam.startTime,
@@ -90,6 +99,7 @@ export async function generateSchedule(exams, rooms, faculty) {
     examId: a.examId,
     roomId: a.roomId,
     facultyId: a.facultyId,
+    assignedStudents: a.assignedStudents,
     status: a.status
   }));
 

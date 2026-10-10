@@ -32,6 +32,7 @@ export const allocations = pgTable('allocations', {
   examId: integer('exam_id').references(() => exams.id),
   roomId: integer('room_id').references(() => rooms.id),
   facultyId: integer('faculty_id').references(() => faculty.id),
+  assignedStudents: integer('assigned_students').default(0),
   status: text('status').default('scheduled'),
   createdAt: timestamp('created_at').defaultNow()
 });

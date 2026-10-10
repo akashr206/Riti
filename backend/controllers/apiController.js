@@ -1,5 +1,6 @@
 import { db } from '../models/index.js';
 import * as schema from '../models/schema.js';
+import { eq } from 'drizzle-orm';
 import { generateSchedule, validateAllocations, isOverlap } from '../services/solver.js';
 
 export const getRooms = async (req, res) => {
@@ -217,4 +218,36 @@ Provide a concise, professional, and highly readable Markdown report. Use header
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
+};
+
+export const createRecord = (tableName) => async (req, res) => {
+  try {
+    const result = await db.insert(schema[tableName]).values(req.body).returning();
+    res.json(result[0]);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+export const updateRecord = (tableName) => async (req, res) => {
+  try {
+    const result = await db.update(schema[tableName]).set(req.body).where(eq(schema[tableName].id, parseInt(req.params.id))).returning();
+    res.json(result[0]);
+  } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+export const deleteRecord = (tableName) => async (req, res) => {
+  try {
+    const id = parseInt(req.params.id);
+    
+    // Manually cascade delete allocations referencing this entity to prevent foreign key constraint errors
+    if (tableName === 'exams') {
+      await db.delete(schema.allocations).where(eq(schema.allocations.examId, id));
+    } else if (tableName === 'rooms') {
+      await db.delete(schema.allocations).where(eq(schema.allocations.roomId, id));
+    } else if (tableName === 'faculty') {
+      await db.delete(schema.allocations).where(eq(schema.allocations.facultyId, id));
+    }
+
+    const result = await db.delete(schema[tableName]).where(eq(schema[tableName].id, id)).returning();
+    res.json(result[0]);
+  } catch (error) { res.status(500).json({ error: error.message }); }
 };
