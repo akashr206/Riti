@@ -7,7 +7,10 @@ import {
   generateScheduleHandler,
   suggestRepair,
   applyRepair,
-  generateInsights
+  generateInsights,
+  createRecord,
+  updateRecord,
+  deleteRecord
 } from '../controllers/apiController.js';
 
 const router = express.Router();
@@ -20,5 +23,11 @@ router.post('/schedule/generate', generateScheduleHandler);
 router.post('/schedule/repair/suggest', suggestRepair);
 router.post('/schedule/repair/apply', applyRepair);
 router.post('/schedule/insights', generateInsights);
+
+['exams', 'rooms', 'faculty'].forEach(table => {
+  router.post(`/${table}`, createRecord(table));
+  router.put(`/${table}/:id`, updateRecord(table));
+  router.delete(`/${table}/:id`, deleteRecord(table));
+});
 
 export default router;
