@@ -4,6 +4,7 @@ export const rooms = pgTable('rooms', {
   id: serial('id').primaryKey(),
   name: text('name').notNull().unique(),
   capacity: integer('capacity').notNull(),
+  accessibleSeats: integer('accessible_seats').default(0),
   isAccessible: boolean('is_accessible').default(false),
   createdAt: timestamp('created_at').defaultNow()
 });
@@ -12,6 +13,7 @@ export const faculty = pgTable('faculty', {
   id: serial('id').primaryKey(),
   name: text('name').notNull(),
   department: text('department'),
+  taughtSubjects: text('taught_subjects'),
   isAvailable: boolean('is_available').default(true),
   createdAt: timestamp('created_at').defaultNow()
 });
@@ -21,6 +23,7 @@ export const exams = pgTable('exams', {
   courseCode: text('course_code').notNull(),
   courseName: text('course_name').notNull(),
   totalStudents: integer('total_students').notNull(),
+  pwdStudents: integer('pwd_students').default(0),
   durationMinutes: integer('duration_minutes').notNull(),
   examDate: date('exam_date').notNull(),
   startTime: time('start_time').notNull(),

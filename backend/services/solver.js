@@ -19,37 +19,72 @@ export async function generateSchedule(exams, rooms, faculty) {
   const allocations = [];
   const errors = [];
   
-  const sortedExams = [...exams].sort((a, b) => b.totalStudents - a.totalStudents);
+  const sortedExams = [...exams].sort((a, b) => {
+    const aPwd = a.pwdStudents || 0;
+    const bPwd = b.pwdStudents || 0;
+    if (bPwd !== aPwd) return bPwd - aPwd;
+    return b.totalStudents - a.totalStudents;
+  });
   
   for (const exam of sortedExams) {
     let unallocatedStudents = exam.totalStudents;
+    let unallocatedPwd = exam.pwdStudents || 0;
     const assignedRooms = [];
     
-    const availableRooms = rooms.filter(room => {
-      if (room.capacity <= 0) return false;
-      
-      const isUsed = allocations.some(alloc => 
-        alloc.roomId === room.id && 
-        isOverlap(
+    const availableRooms = [];
+    for (const room of rooms) {
+      if (room.capacity <= 0) continue;
+
+      let usedCapacity = 0;
+      let usedPwd = 0;
+
+      allocations.forEach(alloc => {
+        if (alloc.roomId === room.id && isOverlap(
           exam.examDate, exam.startTime, exam.durationMinutes,
           alloc.examDate, alloc.startTime, alloc.durationMinutes
-        )
-      );
-      return !isUsed;
-    });
+        )) {
+          usedCapacity += alloc.assignedStudents || 0;
+          usedPwd += alloc.assignedPwdStudents || 0;
+        }
+      });
 
-    availableRooms.sort((a, b) => b.capacity - a.capacity);
+      const remainingCapacity = room.capacity - usedCapacity;
+      const remainingPwd = Math.max(0, (room.accessibleSeats || 0) - usedPwd);
 
-    for (const room of availableRooms) {
-      if (unallocatedStudents <= 0) break;
-      const assignedCount = Math.min(unallocatedStudents, room.capacity);
-      assignedRooms.push({ room, assignedCount });
-      unallocatedStudents -= room.capacity;
+      if (remainingCapacity > 0) {
+        availableRooms.push({
+          ...room,
+          capacity: remainingCapacity,
+          accessibleSeats: remainingPwd
+        });
+      }
     }
 
+    availableRooms.sort((a, b) => {
+      if (unallocatedPwd > 0) {
+        return (b.accessibleSeats || 0) - (a.accessibleSeats || 0);
+      }
+      return b.capacity - a.capacity;
+    });
+
+    for (const room of availableRooms) {
+      if (unallocatedStudents <= 0 && unallocatedPwd <= 0) break;
+      const assignedCount = Math.min(unallocatedStudents, room.capacity);
+      const assignedPwdCount = Math.min(unallocatedPwd, room.accessibleSeats || 0);
+      assignedRooms.push({ room, assignedCount, assignedPwdCount });
+      unallocatedStudents -= assignedCount;
+      unallocatedPwd -= assignedPwdCount;
+    }
+
+    let isPartial = false;
+    
     if (unallocatedStudents > 0) {
-      errors.push(`Infeasible: Not enough room capacity for exam ${exam.courseCode} on ${exam.examDate}. Short by ${unallocatedStudents} seats.`);
-      continue;
+      errors.push(`[CAPACITY SHORTFALL] ${exam.courseCode} (${exam.courseName})\n- Total Students: ${exam.totalStudents}\n- Unallocated: ${unallocatedStudents}\n- Suggestion: Please add a new room with at least ${unallocatedStudents} capacity, or increase existing room capacities.`);
+      isPartial = true;
+    }
+    if (unallocatedPwd > 0) {
+      errors.push(`[ACCESSIBILITY SHORTFALL] ${exam.courseCode} (${exam.courseName})\n- Total PWD Needs: ${exam.pwdStudents}\n- Unallocated PWD: ${unallocatedPwd}\n- Suggestion: Ensure you have rooms with 'Accessible Seats' >= ${unallocatedPwd} available at ${exam.startTime}.`);
+      isPartial = true;
     }
 
     const requiredFacultyCount = assignedRooms.length;
@@ -66,28 +101,35 @@ export async function generateSchedule(exams, rooms, faculty) {
       return !isBusy;
     });
 
-    // Load-balancing: Sort available faculty by their current assignment count (ascending)
     availableFaculty.sort((a, b) => {
+      const aTeaches = a.taughtSubjects?.includes(exam.courseCode) ? 1 : 0;
+      const bTeaches = b.taughtSubjects?.includes(exam.courseCode) ? 1 : 0;
+      
+      if (aTeaches !== bTeaches) {
+        return aTeaches - bTeaches;
+      }
+      
       const aLoad = allocations.filter(alloc => alloc.facultyId === a.id).length;
       const bLoad = allocations.filter(alloc => alloc.facultyId === b.id).length;
       return aLoad - bLoad;
     });
 
     if (availableFaculty.length < requiredFacultyCount) {
-      errors.push(`Infeasible: Not enough available faculty for exam ${exam.courseCode} on ${exam.examDate}. Needed ${requiredFacultyCount}, got ${availableFaculty.length}.`);
-      continue;
+      errors.push(`[FACULTY SHORTFALL] ${exam.courseCode} (${exam.courseName})\n- Required Invigilators: ${requiredFacultyCount}\n- Available: ${availableFaculty.length}\n- Suggestion: Add more faculty members or ensure existing ones aren't double-booked.`);
+      isPartial = true;
     }
 
     for (let i = 0; i < assignedRooms.length; i++) {
-      const { room: assignedRoom, assignedCount } = assignedRooms[i];
+      const { room: assignedRoom, assignedCount, assignedPwdCount } = assignedRooms[i];
       const assignedFaculty = availableFaculty[i];
       
       allocations.push({
         examId: exam.id,
         roomId: assignedRoom.id,
-        facultyId: assignedFaculty.id,
+        facultyId: assignedFaculty ? assignedFaculty.id : null,
         assignedStudents: assignedCount,
-        status: 'scheduled',
+        assignedPwdStudents: assignedPwdCount,
+        status: isPartial ? 'partial' : 'scheduled',
         examDate: exam.examDate,
         startTime: exam.startTime,
         durationMinutes: exam.durationMinutes
@@ -125,10 +167,7 @@ export function validateAllocations(allocations, exams, rooms, faculty) {
       if (isOverlap(a1.exam.examDate, a1.exam.startTime, a1.exam.durationMinutes,
                     a2.exam.examDate, a2.exam.startTime, a2.exam.durationMinutes)) {
         
-        if (a1.roomId === a2.roomId) {
-          issues.push(`Room ${a1.room?.name} is double-booked for exams ${a1.exam.courseCode} and ${a2.exam.courseCode}.`);
-        }
-        if (a1.facultyId === a2.facultyId) {
+        if (a1.facultyId && a1.facultyId === a2.facultyId) {
           issues.push(`Faculty ID ${a1.facultyId} is double-booked for exams ${a1.exam.courseCode} and ${a2.exam.courseCode}.`);
         }
       }
@@ -138,9 +177,24 @@ export function validateAllocations(allocations, exams, rooms, faculty) {
   for (const exam of exams) {
     const examAllocs = richAllocations.filter(a => a.examId === exam.id);
     if (examAllocs.length > 0) {
-      const totalCapacity = examAllocs.reduce((sum, a) => sum + (a.room?.capacity || 0), 0);
-      if (totalCapacity < exam.totalStudents) {
-         issues.push(`Exam ${exam.courseCode} has ${exam.totalStudents} students but only ${totalCapacity} capacity assigned.`);
+      const totalAssigned = examAllocs.reduce((sum, a) => sum + (a.assignedStudents || 0), 0);
+      if (totalAssigned < exam.totalStudents) {
+         issues.push(`Exam ${exam.courseCode} has ${exam.totalStudents} students but only ${totalAssigned} capacity successfully allocated.`);
+      }
+    }
+  }
+
+  for (const room of rooms) {
+    const roomAllocs = richAllocations.filter(a => a.roomId === room.id);
+    for (let i = 0; i < roomAllocs.length; i++) {
+      let overlapSum = roomAllocs[i].assignedStudents || 0;
+      for (let j = 0; j < roomAllocs.length; j++) {
+        if (i !== j && roomAllocs[i].exam && roomAllocs[j].exam && isOverlap(roomAllocs[i].exam.examDate, roomAllocs[i].exam.startTime, roomAllocs[i].exam.durationMinutes, roomAllocs[j].exam.examDate, roomAllocs[j].exam.startTime, roomAllocs[j].exam.durationMinutes)) {
+          overlapSum += roomAllocs[j].assignedStudents || 0;
+        }
+      }
+      if (overlapSum > room.capacity && !issues.some(msg => msg.includes(`Room ${room.name} is over capacity`))) {
+        issues.push(`Room ${room.name} is over capacity (${overlapSum}/${room.capacity}).`);
       }
     }
   }

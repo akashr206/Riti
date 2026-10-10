@@ -10,13 +10,22 @@ import {
   generateInsights,
   createRecord,
   updateRecord,
-  deleteRecord
+  deleteRecord,
+  loginHandler,
+  authenticateToken
 } from '../controllers/apiController.js';
 
 const router = express.Router();
 
-router.get('/rooms', getRooms);
+router.post('/login', loginHandler);
+
+// Public route needed for login dropdown
 router.get('/faculty', getFaculty);
+
+// Protected routes
+router.use(authenticateToken);
+
+router.get('/rooms', getRooms);
 router.get('/exams', getExams);
 router.get('/allocations', getAllocations);
 router.post('/schedule/generate', generateScheduleHandler);
