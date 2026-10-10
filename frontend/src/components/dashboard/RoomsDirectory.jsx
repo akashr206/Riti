@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
-import { MapPin, Users, Settings2, Plus, Edit2, Trash2 } from "lucide-react";
+import { MapPin, Users, Settings2, Plus, Edit2, Trash2, Accessibility } from "lucide-react";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Button } from "../ui/button";
@@ -67,6 +67,12 @@ export function RoomsDirectory({ rooms, allocations, refreshData }) {
                     <Users className="w-3.5 h-3.5" /> Capacity
                   </div>
                   <span className="font-mono font-semibold text-foreground">{room.capacity}</span>
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-2 text-muted-foreground font-medium text-xs uppercase tracking-wider">
+                    <Accessibility className="w-3.5 h-3.5" /> Accessible
+                  </div>
+                  <span className="font-mono font-semibold text-foreground">{room.accessibleSeats || 0}</span>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-2 text-muted-foreground font-medium text-xs uppercase tracking-wider">

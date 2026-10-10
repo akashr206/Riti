@@ -18,10 +18,14 @@ export function EntityEditor({ open, setOpen, entityType, initialData, onSaved }
     e.preventDefault();
     setSaving(true);
     try {
+      const payload = { ...formData };
+      delete payload.id;
+      delete payload.createdAt;
+      
       if (isEdit) {
-        await updateRecord(entityType, initialData.id, formData);
+        await updateRecord(entityType, initialData.id, payload);
       } else {
-        await createRecord(entityType, formData);
+        await createRecord(entityType, payload);
       }
       onSaved();
       setOpen(false);
@@ -56,11 +60,17 @@ export function EntityEditor({ open, setOpen, entityType, initialData, onSaved }
           </div>
           <div className="space-y-2">
             <Label>Duration (Hours)</Label>
-            <Input type="number" step="0.5" value={formData.duration || 3} onChange={e => setFormData({...formData, duration: parseFloat(e.target.value)})} required />
+            <Input type="number" step="0.5" value={formData.durationMinutes ? formData.durationMinutes / 60 : ""} onChange={e => setFormData({...formData, durationMinutes: e.target.value === "" ? "" : parseFloat(e.target.value) * 60})} required />
           </div>
-          <div className="space-y-2">
-            <Label>Registered Students</Label>
-            <Input type="number" value={formData.registeredStudents || 50} onChange={e => setFormData({...formData, registeredStudents: parseInt(e.target.value)})} required />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Total Students</Label>
+              <Input type="number" value={formData.totalStudents ?? ""} onChange={e => setFormData({...formData, totalStudents: e.target.value === "" ? "" : parseInt(e.target.value)})} required />
+            </div>
+            <div className="space-y-2">
+              <Label>PWD Students (Accessible)</Label>
+              <Input type="number" value={formData.pwdStudents ?? ""} onChange={e => setFormData({...formData, pwdStudents: e.target.value === "" ? "" : parseInt(e.target.value)})} />
+            </div>
           </div>
         </>
       );
@@ -72,9 +82,15 @@ export function EntityEditor({ open, setOpen, entityType, initialData, onSaved }
             <Label>Room Name</Label>
             <Input value={formData.name || ""} onChange={e => setFormData({...formData, name: e.target.value})} required />
           </div>
-          <div className="space-y-2">
-            <Label>Capacity</Label>
-            <Input type="number" value={formData.capacity || 50} onChange={e => setFormData({...formData, capacity: parseInt(e.target.value)})} required />
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label>Total Capacity</Label>
+              <Input type="number" value={formData.capacity ?? ""} onChange={e => setFormData({...formData, capacity: e.target.value === "" ? "" : parseInt(e.target.value)})} required />
+            </div>
+            <div className="space-y-2">
+              <Label>Accessible Seats</Label>
+              <Input type="number" value={formData.accessibleSeats ?? ""} onChange={e => setFormData({...formData, accessibleSeats: e.target.value === "" ? "" : parseInt(e.target.value)})} />
+            </div>
           </div>
         </>
       );
@@ -89,6 +105,10 @@ export function EntityEditor({ open, setOpen, entityType, initialData, onSaved }
           <div className="space-y-2">
             <Label>Department</Label>
             <Input value={formData.department || ""} onChange={e => setFormData({...formData, department: e.target.value})} required />
+          </div>
+          <div className="space-y-2">
+            <Label>Taught Subjects (Comma separated)</Label>
+            <Input placeholder="e.g. CS101,CS102" value={formData.taughtSubjects || ""} onChange={e => setFormData({...formData, taughtSubjects: e.target.value})} />
           </div>
         </>
       );
@@ -142,7 +162,7 @@ export function ConfirmDelete({ open, setOpen, entityType, entityId, entityName,
         <DialogHeader>
           <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
             <AlertTriangle className="w-6 h-6 text-destructive" />
-          </div>
+          </div>4
           <DialogTitle className="text-center">Are you absolutely sure?</DialogTitle>
           <DialogDescription className="text-center">
             This action cannot be undone. This will permanently delete <strong>{entityName}</strong> from our servers.

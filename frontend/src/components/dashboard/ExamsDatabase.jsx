@@ -41,6 +41,9 @@ export function ExamsDatabase({ exams, allocations, refreshData }) {
             <TableRow className="hover:bg-transparent">
               <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Course Code</TableHead>
               <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Course Name</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Total Students</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">PWD</TableHead>
+              <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Duration</TableHead>
               <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Date</TableHead>
               <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Time</TableHead>
               <TableHead className="font-semibold text-xs uppercase tracking-wider h-12">Status</TableHead>
@@ -51,9 +54,18 @@ export function ExamsDatabase({ exams, allocations, refreshData }) {
             {exams.map((exam) => {
               const isAllocated = allocations.some(a => a.examId === exam.id);
               return (
-                <TableRow key={exam.id} className="exam-row-anim hover:bg-muted/10 border-border/30">
+                <TableRow key={exam.id} className="exam-row-anim hover:bg-muted/10 border-border/30 group">
                   <TableCell className="font-bold text-foreground py-4">{exam.courseCode}</TableCell>
                   <TableCell className="text-muted-foreground font-medium py-4">{exam.courseName}</TableCell>
+                  <TableCell className="font-medium py-4">{exam.totalStudents}</TableCell>
+                  <TableCell className="font-medium py-4">
+                    {exam.pwdStudents > 0 ? (
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-500/20">{exam.pwdStudents}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="font-medium py-4 text-muted-foreground">{exam.durationMinutes}m</TableCell>
                   <TableCell className="font-mono text-sm py-4">{exam.examDate}</TableCell>
                   <TableCell className="font-mono text-sm py-4">{exam.startTime}</TableCell>
                   <TableCell className="py-4">
@@ -64,7 +76,7 @@ export function ExamsDatabase({ exams, allocations, refreshData }) {
                     )}
                   </TableCell>
                   <TableCell className="text-right py-4">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center justify-end gap-2 transition-opacity">
                       <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-foreground" onClick={() => { setSelectedExam(exam); setEditorOpen(true); }}>
                         <Edit2 className="w-4 h-4" />
                       </Button>
@@ -78,7 +90,7 @@ export function ExamsDatabase({ exams, allocations, refreshData }) {
             })}
             {exams.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} className="h-32 text-center text-muted-foreground">
+                <TableCell colSpan={9} className="h-32 text-center text-muted-foreground">
                   No exams found. Database is empty.
                 </TableCell>
               </TableRow>
