@@ -107,7 +107,7 @@ export default function LoginScreen({ onLogin }) {
 
                     <h1 className="text-5xl lg:text-6xl font-semibold tracking-tight text-white leading-[1.1] mt-24 relative z-20 pointer-events-none">
                         Orchestrate your <br />
-                        Academic exams <br /> WIn thith precision.
+                        Academic exams <br /> With precision.
                     </h1>
                     <p className="mt-6 text-zinc-400 text-lg max-w-md font-light leading-relaxed">
                         An intelligent system for automated scheduling, conflict

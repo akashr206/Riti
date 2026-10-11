@@ -42,7 +42,7 @@ export function GanttSchedule({ allocations, refreshData }) {
         
         try {
             const token = localStorage.getItem("riti_token");
-            const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+            const API_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
             const response = await fetch(`${API_URL}/schedule/insights/stream`, {
                 method: "POST",
                 headers: {
