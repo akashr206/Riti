@@ -299,18 +299,30 @@ export const streamInsights = async (req, res) => {
       const exam = allExams.find(e => e.id === a.examId);
       const room = allRooms.find(r => r.id === a.roomId);
       const fac = allFaculty.find(f => f.id === a.facultyId);
+      
+      let utilization = 'Unknown';
+      if (exam && room && room.capacity > 0) {
+        utilization = ((exam.totalStudents / room.capacity) * 100).toFixed(0) + "%";
+      }
+
       return {
         exam: exam ? `${exam.courseCode} (${exam.totalStudents} pax)` : 'Unknown',
         time: exam ? `${exam.examDate} ${exam.startTime} (${exam.durationMinutes}m)` : 'Unknown',
         room: room ? `${room.name} (cap: ${room.capacity})` : 'Unknown',
-        faculty: fac ? fac.name : 'Unknown'
+        utilization: utilization,
+        faculty: fac ? `${fac.name} (Dept: ${fac.department})` : 'Unknown'
       };
     });
 
     const promptText = `
-You are the Allocation Reasoning Engine.
-Analyze the following exam schedule data.
-For each unique date in the schedule, provide reasoning on why the allocation choices for that day are sound (e.g., noting optimal room utilization, faculty assignments matching subjects, or highlighting tight schedules).
+You are the Riti Allocation Reasoning Engine. 
+Your objective is to provide a strategic analysis of WHY this exam schedule makes sense. 
+Do NOT just summarize who is where. Analyze the logistics and intelligence behind the pairings.
+
+For each unique date, provide bullet points that highlight:
+1. Resource Utilization: Comment on how well room capacities match the student pax.
+2. Faculty Alignment: Comment on if faculty are assigned to exams within their departments.
+3. Logical Flow: Comment on how tight or smooth the timeline is for that day.
 
 CRITICAL INSTRUCTIONS:
 - You MUST output the reasoning strictly as bullet points.
