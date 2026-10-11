@@ -182,7 +182,7 @@ export function ConfirmDelete({ open, setOpen, entityType, entityId, entityName,
         <DialogHeader>
           <div className="mx-auto w-12 h-12 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
             <AlertTriangle className="w-6 h-6 text-destructive" />
-          </div>4
+          </div>
           <DialogTitle className="text-center">Are you absolutely sure?</DialogTitle>
           <DialogDescription className="text-center">
             This action cannot be undone. This will permanently delete <strong>{entityName}</strong> from our servers.
