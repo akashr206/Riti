@@ -42,7 +42,8 @@ export function GanttSchedule({ allocations, refreshData }) {
         
         try {
             const token = localStorage.getItem("riti_token");
-            const response = await fetch("http://localhost:5000/api/schedule/insights/stream", {
+            const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+            const response = await fetch(`${API_URL}/schedule/insights/stream`, {
                 method: "POST",
                 headers: {
                     "Authorization": `Bearer ${token}`
@@ -227,10 +228,11 @@ export function GanttSchedule({ allocations, refreshData }) {
                                     </span>
                                 )}
                             </h3>
+                            
                             {activeReasoningDate === date && (
-                                <div className="sticky left-4 z-50 mb-4 max-w-md w-full bg-card/95 backdrop-blur-xl shadow-xl border border-border/60 rounded-xl p-5 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="sticky left-6 top-16 mb-6 mt-[-10px] w-full max-w-[500px] bg-card/95 backdrop-blur-2xl shadow-xl border border-primary/20 rounded-xl p-5 animate-in fade-in zoom-in-95 slide-in-from-top-2 duration-200 z-50 font-normal">
                                     <div className="flex items-center justify-between mb-4 border-b pb-3">
-                                        <h4 className="font-semibold text-sm flex items-center gap-2 tracking-tight">
+                                        <h4 className="font-semibold text-sm flex items-center gap-2 tracking-tight text-foreground">
                                             <Sparkles className="w-4 h-4 text-primary" />
                                             AI Auditor Insights
                                         </h4>
@@ -238,18 +240,25 @@ export function GanttSchedule({ allocations, refreshData }) {
                                             <X className="w-4 h-4" />
                                         </button>
                                     </div>
-                                    <div className="prose prose-sm dark:prose-invert max-w-none prose-p:leading-relaxed prose-li:my-1.5 prose-li:text-muted-foreground text-sm">
+                                    <div className="prose prose-sm dark:prose-invert max-w-none 
+                                        prose-p:leading-relaxed prose-p:mb-4 prose-p:text-muted-foreground
+                                        prose-strong:text-foreground prose-strong:block prose-strong:mb-1.5 prose-strong:text-xs prose-strong:uppercase prose-strong:tracking-wider prose-strong:font-bold
+                                        prose-ul:list-none prose-ul:p-0 prose-ul:m-0 prose-ul:space-y-3
+                                        prose-ol:list-none prose-ol:p-0 prose-ol:m-0 prose-ol:space-y-3
+                                        prose-li:bg-muted/40 prose-li:p-4 prose-li:rounded-xl prose-li:m-0 prose-li:border prose-li:border-border/50 prose-li:text-muted-foreground prose-li:shadow-sm
+                                        text-[13px]">
                                         {reasoningData[date] ? (
                                             <ReactMarkdown>{reasoningData[date]}</ReactMarkdown>
                                         ) : (
-                                            <div className="flex items-center text-muted-foreground/70 italic gap-2 py-2">
-                                                <Loader2 className="w-4 h-4 animate-spin text-primary/50" />
+                                            <div className="flex items-center text-muted-foreground/70 italic gap-3 py-4 px-2 bg-muted/20 rounded-xl">
+                                                <Loader2 className="w-4 h-4 animate-spin text-primary" />
                                                 Processing optimal layout...
                                             </div>
                                         )}
                                     </div>
                                 </div>
                             )}
+                            
                             <div className="inline-block min-w-max bg-card print:bg-transparent rounded-none border border-border relative">
                                 <div className="flex border-b border-border bg-muted/20 print:bg-transparent sticky top-0 z-20">
                                     <div className="w-40 min-w-[160px] max-w-[160px] flex-none font-bold text-muted-foreground text-xs uppercase tracking-wider flex items-center p-3 border-r border-border sticky left-0 bg-muted/95 print:bg-transparent backdrop-blur z-30 overflow-hidden">

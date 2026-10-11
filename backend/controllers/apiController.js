@@ -153,7 +153,8 @@ export const suggestRepair = async (req, res) => {
       if (substitute) {
         return res.json({ success: true, suggestion: { type: 'faculty', replaceWithId: substitute.id, replaceWithName: substitute.name } });
       } else {
-        return res.json({ success: false, message: "No available faculty found for this time slot. Manual intervention required." });
+        const totalAvail = allFaculty.filter(f => f.isAvailable).length;
+        return res.json({ success: false, message: `No standby faculty available. Out of ${totalAvail} available faculty members, ${busyFacultyIds.size} are already occupied during this time slot.` });
       }
     }
 
@@ -166,7 +167,8 @@ export const suggestRepair = async (req, res) => {
       if (substitute) {
         return res.json({ success: true, suggestion: { type: 'room', replaceWithId: substitute.id, replaceWithName: substitute.name } });
       } else {
-        return res.json({ success: false, message: "No suitable room found for this capacity and time slot." });
+        const largeRooms = allRooms.filter(r => r.capacity >= currentRoom.capacity).length;
+        return res.json({ success: false, message: `No suitable room found. All ${largeRooms} rooms with a capacity of >= ${currentRoom.capacity} are already occupied during this exam block.` });
       }
     }
 
