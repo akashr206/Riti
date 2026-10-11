@@ -1,4 +1,5 @@
 import express from 'express';
+import multer from 'multer';
 import {
   getRooms,
   getFaculty,
@@ -8,12 +9,17 @@ import {
   suggestRepair,
   applyRepair,
   generateInsights,
+  streamInsights,
   createRecord,
   updateRecord,
   deleteRecord,
   loginHandler,
-  authenticateToken
+  authenticateToken,
+  ingestDocumentHandler,
+  confirmIngestHandler
 } from '../controllers/apiController.js';
+
+const upload = multer({ storage: multer.memoryStorage() });
 
 const router = express.Router();
 
@@ -32,6 +38,10 @@ router.post('/schedule/generate', generateScheduleHandler);
 router.post('/schedule/repair/suggest', suggestRepair);
 router.post('/schedule/repair/apply', applyRepair);
 router.post('/schedule/insights', generateInsights);
+router.post('/schedule/insights/stream', streamInsights);
+
+router.post('/ingest/document', upload.single('file'), ingestDocumentHandler);
+router.post('/ingest/confirm', confirmIngestHandler);
 
 ['exams', 'rooms', 'faculty'].forEach(table => {
   router.post(`/${table}`, createRecord(table));

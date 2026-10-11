@@ -3,6 +3,7 @@ import * as schema from '../models/schema.js';
 import { eq } from 'drizzle-orm';
 import jwt from 'jsonwebtoken';
 import { generateSchedule, validateAllocations, isOverlap } from '../services/solver.js';
+import { PDFParse } from 'pdf-parse';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'hackathon_super_secret_key_2026';
 
@@ -40,7 +41,6 @@ export const loginHandler = async (req, res) => {
   } else if (role === 'lecturer') {
     if (!facultyId || !password) return res.status(400).json({ error: 'Faculty ID and password required.' });
     
-    // Check lecturer password (for hackathon, all lecturers share a default password or match a pattern)
     const lecturerPassword = process.env.LECTURER_PASSWORD || 'lecturer123';
     if (password !== lecturerPassword) {
       return res.status(401).json({ error: 'Invalid lecturer password.' });
@@ -133,16 +133,20 @@ export const suggestRepair = async (req, res) => {
 
     const targetExam = allExams.find(e => e.id === targetAlloc.examId);
 
-    const overlappingAllocs = allAllocations.filter(a => {
-      const e = allExams.find(ex => ex.id === a.examId);
-      if (!e) return false;
-      return isOverlap(
-        targetExam.examDate, targetExam.startTime, targetExam.durationMinutes,
-        e.examDate, e.startTime, e.durationMinutes
-      );
-    });
+    const getOverlappingAllocs = (bufferMinutes) => {
+      return allAllocations.filter(a => {
+        const e = allExams.find(ex => ex.id === a.examId);
+        if (!e) return false;
+        return isOverlap(
+          targetExam.examDate, targetExam.startTime, targetExam.durationMinutes,
+          e.examDate, e.startTime, e.durationMinutes,
+          bufferMinutes
+        );
+      });
+    };
 
     if (disruptionType === 'faculty') {
+      const overlappingAllocs = getOverlappingAllocs(60);
       const busyFacultyIds = new Set(overlappingAllocs.map(a => a.facultyId));
       const substitute = allFaculty.find(f => f.isAvailable && !busyFacultyIds.has(f.id));
 
@@ -154,6 +158,7 @@ export const suggestRepair = async (req, res) => {
     }
 
     if (disruptionType === 'room') {
+      const overlappingAllocs = getOverlappingAllocs(0);
       const currentRoom = allRooms.find(r => r.id === targetAlloc.roomId);
       const busyRoomIds = new Set(overlappingAllocs.map(a => a.roomId));
       const substitute = allRooms.find(r => r.capacity >= currentRoom.capacity && !busyRoomIds.has(r.id));
@@ -218,16 +223,20 @@ export const generateInsights = async (req, res) => {
     });
 
     const promptText = `
-You are the Chief Academic Officer AI Auditor.
-Analyze the following exam schedule data. Look for human-factor issues such as:
-1. Faculty Burnout: Are any faculty members assigned to too many back-to-back exams?
-2. Room Underutilization: Are tiny exams placed in massive halls?
-3. Scheduling Anomalies: Anything else that seems unfair or risky.
+You are the Allocation Reasoning Engine.
+Analyze the following exam schedule data.
+For each unique date in the schedule, provide a brief 2-3 sentence reasoning on why the allocation choices for that day are sound (e.g., noting optimal room utilization, faculty assignments matching subjects, or highlighting any tight schedules).
 
 Schedule Data:
 ${JSON.stringify(compressedSchedule, null, 2)}
 
-Provide a concise, professional, and highly readable Markdown report. Use headers, bullet points, and bold text. Do not provide a JSON response.
+Output ONLY valid JSON in the following format. Do not include markdown code blocks or any other text.
+{
+  "YYYY-MM-DD": [
+    "Reasoning string 1",
+    "Reasoning string 2"
+  ]
+}
 `;
 
     const response = await fetch('https://api.xiaomimimo.com/v1/chat/completions', {
@@ -256,11 +265,118 @@ Provide a concise, professional, and highly readable Markdown report. Use header
     }
 
     const result = await response.json();
-    const markdownReport = result.choices[0].message.content;
+    const rawContent = result.choices[0].message.content;
+    let jsonReport = {};
+    try {
+      jsonReport = JSON.parse(rawContent.replace(/```json|```/g, '').trim());
+    } catch (e) {
+      console.error("Failed to parse reasoning JSON:", rawContent);
+    }
 
-    res.json({ success: true, report: markdownReport });
+    res.json({ success: true, report: jsonReport });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+export const streamInsights = async (req, res) => {
+  try {
+    const apiKey = process.env.MIMO_API_KEY;
+    if (!apiKey) {
+      return res.status(400).json({ error: "MIMO_API_KEY is not set in backend .env file." });
+    }
+
+    const allAllocations = await db.select().from(schema.allocations);
+    if (allAllocations.length === 0) {
+      return res.status(400).json({ error: "Schedule is empty. Please generate a schedule first." });
+    }
+
+    const allExams = await db.select().from(schema.exams);
+    const allRooms = await db.select().from(schema.rooms);
+    const allFaculty = await db.select().from(schema.faculty);
+
+    const compressedSchedule = allAllocations.map(a => {
+      const exam = allExams.find(e => e.id === a.examId);
+      const room = allRooms.find(r => r.id === a.roomId);
+      const fac = allFaculty.find(f => f.id === a.facultyId);
+      return {
+        exam: exam ? `${exam.courseCode} (${exam.totalStudents} pax)` : 'Unknown',
+        time: exam ? `${exam.examDate} ${exam.startTime} (${exam.durationMinutes}m)` : 'Unknown',
+        room: room ? `${room.name} (cap: ${room.capacity})` : 'Unknown',
+        faculty: fac ? fac.name : 'Unknown'
+      };
+    });
+
+    const promptText = `
+You are the Allocation Reasoning Engine.
+Analyze the following exam schedule data.
+For each unique date in the schedule, provide reasoning on why the allocation choices for that day are sound (e.g., noting optimal room utilization, faculty assignments matching subjects, or highlighting tight schedules).
+
+CRITICAL INSTRUCTIONS:
+- You MUST output the reasoning strictly as bullet points.
+- You MUST group the bullet points under strict date headers formatted exactly as: ### YYYY-MM-DD
+- Do NOT output any other markdown or conversational text. Just the headers and bullet points.
+
+Schedule Data:
+${JSON.stringify(compressedSchedule, null, 2)}
+`;
+
+    res.writeHead(200, {
+      'Content-Type': 'text/plain',
+      'Transfer-Encoding': 'chunked'
+    });
+
+    const response = await fetch('https://api.xiaomimimo.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'mimo-v2.6-flash',
+        stream: true,
+        messages: [
+          { role: 'system', content: 'You are an AI assistant.' },
+          { role: 'user', content: promptText }
+        ],
+        max_completion_tokens: 1024,
+        temperature: 0.7,
+        "thinking": {
+          "type": "disabled"
+        }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      res.write(`Error: ${response.status} - ${errorText}`);
+      res.end();
+      return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
+      for (const line of lines) {
+        if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.choices[0].delta.content) {
+              res.write(data.choices[0].delta.content);
+            }
+          } catch(e) {}
+        }
+      }
+    }
+    res.end();
+  } catch (error) {
+    res.write(`\nError: ${error.message}`);
+    res.end();
   }
 };
 
@@ -293,4 +409,111 @@ export const deleteRecord = (tableName) => async (req, res) => {
     const result = await db.delete(schema[tableName]).where(eq(schema[tableName].id, id)).returning();
     res.json(result[0]);
   } catch (error) { res.status(500).json({ error: error.message }); }
+};
+
+export const ingestDocumentHandler = async (req, res) => {
+  try {
+    const apiKey = process.env.MIMO_API_KEY;
+    if (!apiKey) return res.status(400).json({ error: "MIMO_API_KEY is not set." });
+
+    if (!req.file && !req.body.text) {
+      return res.status(400).json({ error: "No file or text provided." });
+    }
+
+    let rawText = req.body.text || "";
+
+    if (req.file) {
+      if (req.file.mimetype === 'application/pdf') {
+        const parser = new PDFParse({ data: req.file.buffer });
+        try {
+          const result = await parser.getText();
+          rawText = result.text;
+        } finally {
+          await parser.destroy();
+        }
+      } else {
+        rawText = req.file.buffer.toString('utf8');
+      }
+    }
+
+    const promptText = `
+You are an expert data extraction AI.
+Extract the following unstructured text into a strict JSON format matching this schema:
+{
+  "rooms": [{ "name": "String", "capacity": Number, "accessibleSeats": Number, "isAccessible": Boolean }],
+  "faculty": [{ "name": "String", "department": "String", "taughtSubjects": "String (comma separated)" }],
+  "exams": [{ "courseCode": "String", "courseName": "String", "totalStudents": Number, "pwdStudents": Number, "durationMinutes": Number, "examDate": "YYYY-MM-DD", "startTime": "HH:MM" }]
+}
+Extract ALL possible rooms, faculties, and exams you can find in the text.
+If any field is missing, infer a reasonable default or leave it empty string, but keep the types correct.
+For dates use YYYY-MM-DD, for times use HH:MM (24-hour).
+Respond ONLY with the JSON object. Do not include markdown formatting or backticks around the json.
+
+Raw Text:
+${rawText}
+`;
+
+    const response = await fetch('https://api.xiaomimimo.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'api-key': apiKey,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'mimo-v2.6-flash',
+        messages: [
+          { role: 'system', content: 'You are an AI assistant that only outputs valid JSON.' },
+          { role: 'user', content: promptText }
+        ],
+        max_completion_tokens: 4096,
+        temperature: 0.1,
+        "thinking": { "type": "disabled" }
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      return res.status(500).json({ error: 'MIMO API Error: ' + errorText });
+    }
+
+    const data = await response.json();
+    let jsonString = data.choices[0].message.content.trim();
+    if (jsonString.startsWith('\`\`\`json')) {
+      jsonString = jsonString.replace(/^\`\`\`json\n/, '').replace(/\n\`\`\`$/, '');
+    } else if (jsonString.startsWith('\`\`\`')) {
+      jsonString = jsonString.replace(/^\`\`\`\n/, '').replace(/\n\`\`\`$/, '');
+    }
+
+    const parsedData = JSON.parse(jsonString);
+
+    parsedData.rooms = parsedData.rooms || [];
+    parsedData.faculty = parsedData.faculty || [];
+    parsedData.exams = parsedData.exams || [];
+
+    res.json({ success: true, data: parsedData });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+export const confirmIngestHandler = async (req, res) => {
+  try {
+    const { rooms, faculty, exams } = req.body;
+
+    if (rooms && rooms.length > 0) {
+      await db.insert(schema.rooms).values(rooms.map(r => ({ ...r, isAvailable: true })));
+    }
+    
+    if (faculty && faculty.length > 0) {
+      await db.insert(schema.faculty).values(faculty.map(f => ({ ...f, isAvailable: true })));
+    }
+
+    if (exams && exams.length > 0) {
+      await db.insert(schema.exams).values(exams);
+    }
+
+    res.json({ success: true, message: "Data successfully ingested." });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 };
