@@ -22,8 +22,9 @@ import { GanttSchedule } from "./components/dashboard/GanttSchedule";
 import { FacultyDirectory } from "./components/dashboard/FacultyDirectory";
 import { RoomsDirectory } from "./components/dashboard/RoomsDirectory";
 import { ExamsDatabase } from "./components/dashboard/ExamsDatabase";
-import { AIAuditor } from "./components/dashboard/AIAuditor";
+
 import { ExportPDFModal } from "./components/dashboard/ExportPDFModal";
+import { SmartIngestionHub } from "./components/dashboard/SmartIngestionHub";
 import {
     fetchExams,
     fetchRooms,
@@ -44,7 +45,7 @@ export default function Dashboard({ onLogout }) {
     const [error, setError] = useState(null);
     const [currentPage, setCurrentPage] = useState(() => {
         const hash = window.location.hash.replace("#", "");
-        return ["matrix", "faculty", "rooms", "exams"].includes(hash)
+        return ["matrix", "faculty", "rooms", "exams", "ingestion"].includes(hash)
             ? hash
             : "matrix";
     });
@@ -159,7 +160,7 @@ export default function Dashboard({ onLogout }) {
                             onClick={() => setCurrentPage("matrix")}
                             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentPage === "matrix" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
                         >
-                            <LayoutGrid className="w-4 h-4" /> Room Matrix
+                            <LayoutGrid className="w-4 h-4" /> Allocation Visualizer
                         </button>
                         <button
                             onClick={() => setCurrentPage("faculty")}
@@ -180,6 +181,21 @@ export default function Dashboard({ onLogout }) {
                             <Database className="w-4 h-4" /> Exam Database
                         </button>
                     </nav>
+
+                    <div className="mt-8">
+                        <h3 className="px-3 text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-2">
+                            Operations
+                        </h3>
+                        <button
+                            onClick={() => setCurrentPage("ingestion")}
+                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${currentPage === "ingestion" ? "bg-primary/10 text-primary" : "text-muted-foreground hover:bg-muted hover:text-foreground group"}`}
+                        >
+                            <Sparkles
+                                className={`w-4 h-4 ${currentPage === "ingestion" ? "" : "text-muted-foreground"}`}
+                            />
+                            Smart Import Hub
+                        </button>
+                    </div>
                 </div>
             </aside>
 
@@ -188,10 +204,11 @@ export default function Dashboard({ onLogout }) {
                 {/* Top bar */}
                 <div className="sticky top-0 z-30 bg-background/80 backdrop-blur-md border-b border-border/40 p-4 flex items-center justify-between shrink-0">
                     <h2 className="text-lg font-semibold tracking-tight text-foreground">
-                        {currentPage === "matrix" && "Room Matrix"}
+                        {currentPage === "matrix" && "Allocation Visualizer"}
                         {currentPage === "faculty" && "Faculty Workload"}
                         {currentPage === "rooms" && "Rooms & Capacities"}
                         {currentPage === "exams" && "Master Exam Database"}
+                        {currentPage === "ingestion" && "AI Data Ingestion"}
                     </h2>
                     <div className="flex items-center gap-3">
                         {data.allocations.length > 0 &&
@@ -269,21 +286,7 @@ export default function Dashboard({ onLogout }) {
                             </DialogContent>
                         </Dialog>
 
-                        <Dialog>
-                            <DialogTrigger
-                                className={buttonVariants({
-                                    variant: "outline",
-                                    size: "lg",
-                                    className:
-                                        "font-medium bg-indigo-500/10 text-indigo-500 hover:bg-indigo-500/20 border-indigo-500/20 hover:text-indigo-600 cursor-pointer",
-                                })}
-                            >
-                                <Sparkles className="w-4 h-4" /> AI Co-Pilot
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                                <AIAuditor />
-                            </DialogContent>
-                        </Dialog>
+
                         <Button
                             variant="outline"
                             size="lg"
@@ -296,7 +299,18 @@ export default function Dashboard({ onLogout }) {
                 </div>
 
                 <div className="flex-1 flex flex-col overflow-hidden relative">
-                    {data.allocations.length === 0 ? (
+                    {generating ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center bg-background/50 backdrop-blur-sm z-50 animate-in fade-in duration-300">
+                            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6 relative">
+                                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                                <div className="absolute inset-0 rounded-full border-4 border-primary/20 border-t-primary animate-spin" style={{ animationDuration: '3s' }} />
+                            </div>
+                            <h3 className="text-2xl font-semibold tracking-tight text-foreground mb-2">Synthesizing Optimal Layout...</h3>
+                            <p className="text-muted-foreground max-w-sm">
+                                Running heuristic checks across all constraints, capacities, and faculty workloads.
+                            </p>
+                        </div>
+                    ) : data.allocations.length === 0 ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700">
                             <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6">
                                 <Sparkles className="w-12 h-12 text-primary" />
@@ -359,6 +373,12 @@ export default function Dashboard({ onLogout }) {
                                     exams={data.exams}
                                     allocations={richAllocations}
                                     refreshData={() => fetchData(false)}
+                                />
+                            )}
+                            {currentPage === "ingestion" && (
+                                <SmartIngestionHub
+                                    refreshData={fetchData}
+                                    setPage={setCurrentPage}
                                 />
                             )}
                         </>
