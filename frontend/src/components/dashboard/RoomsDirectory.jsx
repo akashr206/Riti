@@ -41,8 +41,22 @@ export function RoomsDirectory({ rooms, allocations, refreshData }) {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {roomsWithUsage.map(room => (
+      {roomsWithUsage.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-20 text-center animate-in fade-in duration-500">
+          <div className="w-20 h-20 bg-muted rounded-full flex items-center justify-center mb-4 border border-border">
+            <MapPin className="w-8 h-8 text-muted-foreground opacity-50" />
+          </div>
+          <h3 className="text-xl font-bold tracking-tight text-foreground mb-2">No Rooms Found</h3>
+          <p className="text-muted-foreground max-w-sm mb-6">
+            You haven't added any exam venues yet. Add rooms manually or use the Smart Ingestor to extract them from documents.
+          </p>
+          <Button onClick={() => { setSelectedRoom(null); setEditorOpen(true); }} className="shadow-sm">
+            <Plus className="w-4 h-4 mr-2" /> Add Your First Room
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          {roomsWithUsage.map(room => (
           <Card key={room.id} className="room-card-anim border-border/50 bg-card hover:shadow-md transition-shadow relative overflow-hidden group">
             <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex gap-1 z-20">
               <Button variant="secondary" size="icon" className="h-7 w-7 bg-background/80 backdrop-blur" onClick={() => { setSelectedRoom(room); setEditorOpen(true); }}>
@@ -90,6 +104,7 @@ export function RoomsDirectory({ rooms, allocations, refreshData }) {
           </Card>
         ))}
       </div>
+      )}
 
       {editorOpen && <EntityEditor open={editorOpen} setOpen={setEditorOpen} entityType="rooms" initialData={selectedRoom} onSaved={refreshData} />}
       {deleteOpen && <ConfirmDelete open={deleteOpen} setOpen={setDeleteOpen} entityType="rooms" entityId={selectedRoom?.id} entityName={selectedRoom?.name} onDeleted={refreshData} />}

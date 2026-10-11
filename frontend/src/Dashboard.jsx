@@ -10,6 +10,7 @@ import {
     MapPin,
     Database,
     BarChart2,
+    AlertTriangle,
 } from "lucide-react";
 import {
     Dialog,
@@ -99,6 +100,9 @@ export default function Dashboard({ onLogout }) {
                     "PARTIAL SCHEDULE GENERATED WITH CONFLICTS:\n\n" +
                         res.errors.join("\n\n"),
                 );
+                localStorage.setItem('last_schedule_errors', JSON.stringify(res.errors));
+            } else {
+                localStorage.removeItem('last_schedule_errors');
             }
         } catch (err) {
             setError(err.message);
@@ -139,17 +143,7 @@ export default function Dashboard({ onLogout }) {
                 </div>
 
                 <div className="p-4 space-y-4 overflow-y-auto flex-1">
-                    {error && (
-                        <Alert
-                            variant="destructive"
-                            className="bg-destructive/10"
-                        >
-                            <AlertCircle className="h-4 w-4" />
-                            <AlertDescription className="text-xs whitespace-pre-wrap">
-                                {error}
-                            </AlertDescription>
-                        </Alert>
-                    )}
+
 
                     <nav className="space-y-1 mt-4">
                         <button
@@ -313,39 +307,63 @@ export default function Dashboard({ onLogout }) {
                                 Running heuristic checks across all constraints, capacities, and faculty workloads.
                             </p>
                         </div>
-                    ) : data.allocations.length === 0 ? (
+                    ) : data.allocations.length === 0 && currentPage === "matrix" ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center animate-in fade-in duration-700">
-                            <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6">
-                                <Sparkles className="w-12 h-12 text-primary" />
-                            </div>
-                            <h2 className="text-3xl font-bold tracking-tight text-foreground mb-3">
-                                Ready to Orchestrate?
-                            </h2>
-                            <p className="text-muted-foreground max-w-md mb-8">
-                                Your database has {data.exams.length} exams,{" "}
-                                {data.rooms.length} rooms, and{" "}
-                                {data.faculty.length} faculty members. Let our
-                                AI copilot instantly synthesize the perfect
-                                conflict-free master schedule.
-                            </p>
-                            <Button
-                                onClick={handleGenerateSchedule}
-                                disabled={generating}
-                                size="lg"
-                                className="h-14 px-8 text-lg rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
-                            >
-                                {generating ? (
-                                    <>
-                                        <Loader2 className="mr-3 h-5 w-5 animate-spin" />{" "}
-                                        Synthesizing Master Schedule...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Sparkles className="mr-3 h-5 w-5" />{" "}
-                                        Generate First Schedule
-                                    </>
-                                )}
-                            </Button>
+                            {data.exams.length === 0 || data.rooms.length === 0 ? (
+                                <>
+                                    <div className="w-24 h-24 bg-muted rounded-full flex items-center justify-center mb-6 border border-border">
+                                        <Database className="w-10 h-10 text-muted-foreground" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-3">
+                                        No Data Available
+                                    </h2>
+                                    <p className="text-muted-foreground max-w-md mb-8">
+                                        Your database is currently empty. Please add exams, rooms, and faculty manually through their respective tabs, or use the <strong>AI Data Ingestion</strong> hub to extract them instantly from your documents.
+                                    </p>
+                                    <Button
+                                        onClick={() => setCurrentPage("ingestion")}
+                                        size="lg"
+                                        className="h-14 px-8 text-lg rounded-xl shadow-md transition-all"
+                                    >
+                                        <Sparkles className="mr-3 h-5 w-5" />
+                                        Go to Smart Ingestor
+                                    </Button>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="w-24 h-24 bg-primary/10 rounded-full flex items-center justify-center mb-6">
+                                        <Sparkles className="w-12 h-12 text-primary" />
+                                    </div>
+                                    <h2 className="text-3xl font-bold tracking-tight text-foreground mb-3">
+                                        Ready to Orchestrate?
+                                    </h2>
+                                    <p className="text-muted-foreground max-w-md mb-8">
+                                        Your database has {data.exams.length} exams,{" "}
+                                        {data.rooms.length} rooms, and{" "}
+                                        {data.faculty.length} faculty members. Let our
+                                        AI copilot instantly synthesize the perfect
+                                        conflict-free master schedule.
+                                    </p>
+                                    <Button
+                                        onClick={handleGenerateSchedule}
+                                        disabled={generating}
+                                        size="lg"
+                                        className="h-14 px-8 text-lg rounded-xl shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:scale-[1.02] active:scale-[0.98] transition-all"
+                                    >
+                                        {generating ? (
+                                            <>
+                                                <Loader2 className="mr-3 h-5 w-5 animate-spin" />{" "}
+                                                Synthesizing Master Schedule...
+                                            </>
+                                        ) : (
+                                            <>
+                                                <Sparkles className="mr-3 h-5 w-5" />{" "}
+                                                Generate First Schedule
+                                            </>
+                                        )}
+                                    </Button>
+                                </>
+                            )}
                         </div>
                     ) : (
                         <>
@@ -388,6 +406,23 @@ export default function Dashboard({ onLogout }) {
                     )}
                 </div>
             </main>
+
+            <Dialog open={!!error} onOpenChange={(open) => { if (!open) setError(null); }}>
+                <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-destructive">
+                            <AlertTriangle className="w-5 h-5" /> 
+                            {error?.includes("PARTIAL SCHEDULE") ? "Scheduling Conflicts Detected" : "System Alert"}
+                        </DialogTitle>
+                    </DialogHeader>
+                    <div className="flex-1 overflow-y-auto bg-destructive/5 text-destructive border border-destructive/20 p-4 rounded-md whitespace-pre-wrap font-mono text-sm my-4">
+                        {error}
+                    </div>
+                    <div className="flex justify-end shrink-0">
+                        <Button variant="outline" onClick={() => setError(null)}>Acknowledge & Continue</Button>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

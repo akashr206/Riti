@@ -123,13 +123,20 @@ export function SeatMatrixModal({ open, onOpenChange, alloc, allAllocations, onS
 
         {alloc.status === 'partial' && (
           <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 p-3 rounded-lg flex flex-col gap-1 mx-2">
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 mb-1">
               <AlertTriangle className="w-4 h-4" />
               <span className="text-sm font-bold">Partial Allocation</span>
             </div>
-            <p className="text-xs font-medium">
-              The AI solver could not fully accommodate this exam. Check the dashboard errors for details.
-              {!fac && " Missing Invigilator."}
+            <p className="text-xs font-medium whitespace-pre-wrap font-mono">
+              {(() => {
+                try {
+                  const storedErrors = JSON.parse(localStorage.getItem('last_schedule_errors') || '[]');
+                  const specificError = storedErrors.find(e => e.includes(exam.courseCode));
+                  if (specificError) return specificError;
+                } catch(e) {}
+                
+                return `The AI solver could not fully accommodate this exam. Check the dashboard errors for details.${!fac ? ' Missing Invigilator.' : ''}`;
+              })()}
             </p>
           </div>
         )}
