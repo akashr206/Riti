@@ -234,50 +234,43 @@ export function SmartIngestionHub({ refreshData, setPage }) {
                                         className="text-sm p-3 bg-muted/40 rounded-lg flex justify-between items-center border border-transparent hover:border-border transition-colors"
                                     >
                                         {editMode ? (
-                                            <>
+                                            <div className="flex flex-col gap-2 w-full">
                                                 <input
-                                                    className="font-medium text-foreground bg-background border px-2 py-1 rounded w-1/2"
+                                                    className="font-medium text-foreground bg-background border px-2 py-1 rounded w-full"
                                                     value={r.name}
-                                                    onChange={(e) =>
-                                                        updatePreviewData(
-                                                            "rooms",
-                                                            i,
-                                                            "name",
-                                                            e.target.value,
-                                                        )
-                                                    }
+                                                    onChange={(e) => updatePreviewData("rooms", i, "name", e.target.value)}
                                                 />
-                                                <div className="flex items-center gap-1">
-                                                    <span className="text-xs text-muted-foreground">
-                                                        Cap:
-                                                    </span>
+                                                <div className="flex items-center gap-2">
                                                     <input
                                                         type="number"
-                                                        className="font-mono text-xs bg-background px-2 py-1 rounded border w-16"
+                                                        placeholder="Cap"
+                                                        className="font-mono text-xs bg-background px-2 py-1 rounded border w-1/2"
                                                         value={r.capacity}
-                                                        onChange={(e) =>
-                                                            updatePreviewData(
-                                                                "rooms",
-                                                                i,
-                                                                "capacity",
-                                                                parseInt(
-                                                                    e.target
-                                                                        .value,
-                                                                ) || 0,
-                                                            )
-                                                        }
+                                                        onChange={(e) => updatePreviewData("rooms", i, "capacity", parseInt(e.target.value) || 0)}
+                                                    />
+                                                    <input
+                                                        type="number"
+                                                        placeholder="Acc. Seats"
+                                                        className="font-mono text-xs bg-background px-2 py-1 rounded border w-1/2"
+                                                        value={r.accessibleSeats || ""}
+                                                        onChange={(e) => updatePreviewData("rooms", i, "accessibleSeats", parseInt(e.target.value) || 0)}
                                                     />
                                                 </div>
-                                            </>
+                                            </div>
                                         ) : (
-                                            <>
+                                            <div className="flex flex-col w-full">
                                                 <span className="font-medium text-foreground">
                                                     {r.name}
                                                 </span>
-                                                <span className="text-muted-foreground font-mono text-xs bg-background px-2 py-1 rounded border">
-                                                    Cap: {r.capacity}
-                                                </span>
-                                            </>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-muted-foreground font-mono text-xs bg-background px-2 py-0.5 rounded border">
+                                                        Cap: {r.capacity}
+                                                    </span>
+                                                    <span className="text-muted-foreground font-mono text-xs bg-background px-2 py-0.5 rounded border">
+                                                        Acc: {r.accessibleSeats || 0}
+                                                    </span>
+                                                </div>
+                                            </div>
                                         )}
                                     </div>
                                 ))}
@@ -317,27 +310,19 @@ export function SmartIngestionHub({ refreshData, setPage }) {
                                                 <input
                                                     className="font-medium text-foreground bg-background border px-2 py-1 rounded w-full"
                                                     value={f.name}
-                                                    onChange={(e) =>
-                                                        updatePreviewData(
-                                                            "faculty",
-                                                            i,
-                                                            "name",
-                                                            e.target.value,
-                                                        )
-                                                    }
+                                                    onChange={(e) => updatePreviewData("faculty", i, "name", e.target.value)}
                                                 />
                                                 <input
                                                     className="text-muted-foreground text-xs uppercase tracking-wider bg-background border px-2 py-1 rounded w-full"
                                                     value={f.department || ""}
                                                     placeholder="Department"
-                                                    onChange={(e) =>
-                                                        updatePreviewData(
-                                                            "faculty",
-                                                            i,
-                                                            "department",
-                                                            e.target.value,
-                                                        )
-                                                    }
+                                                    onChange={(e) => updatePreviewData("faculty", i, "department", e.target.value)}
+                                                />
+                                                <input
+                                                    className="text-muted-foreground text-xs bg-background border px-2 py-1 rounded w-full"
+                                                    value={f.taughtSubjects || ""}
+                                                    placeholder="Subjects (e.g. CS101, CS102)"
+                                                    onChange={(e) => updatePreviewData("faculty", i, "taughtSubjects", e.target.value)}
                                                 />
                                             </>
                                         ) : (
@@ -345,10 +330,14 @@ export function SmartIngestionHub({ refreshData, setPage }) {
                                                 <span className="font-medium text-foreground">
                                                     {f.name}
                                                 </span>
-                                                <span className="text-muted-foreground text-xs uppercase tracking-wider">
-                                                    {f.department ||
-                                                        "Unassigned"}
-                                                </span>
+                                                <div className="flex flex-col gap-0.5">
+                                                    <span className="text-muted-foreground text-[10px] uppercase tracking-wider font-semibold">
+                                                        {f.department || "Unassigned"}
+                                                    </span>
+                                                    <span className="text-muted-foreground text-xs line-clamp-1">
+                                                        {f.taughtSubjects || "No subjects"}
+                                                    </span>
+                                                </div>
                                             </>
                                         )}
                                     </div>
@@ -382,43 +371,47 @@ export function SmartIngestionHub({ refreshData, setPage }) {
                                 {previewData.exams?.map((e, i) => (
                                     <div
                                         key={i}
-                                        className="text-sm p-3 bg-muted/40 rounded-lg flex justify-between items-center gap-2 border border-transparent hover:border-border transition-colors"
+                                        className="text-sm p-3 bg-muted/40 rounded-lg flex flex-col gap-2 border border-transparent hover:border-border transition-colors"
                                     >
                                         {editMode ? (
                                             <>
-                                                <input
-                                                    className="font-medium text-foreground bg-background border px-2 py-1 rounded w-1/2"
-                                                    value={e.courseCode}
-                                                    onChange={(ev) =>
-                                                        updatePreviewData(
-                                                            "exams",
-                                                            i,
-                                                            "courseCode",
-                                                            ev.target.value,
-                                                        )
-                                                    }
-                                                />
-                                                <input
-                                                    className="text-muted-foreground font-mono text-xs bg-background border px-2 py-1 rounded w-1/2"
-                                                    value={e.examDate}
-                                                    onChange={(ev) =>
-                                                        updatePreviewData(
-                                                            "exams",
-                                                            i,
-                                                            "examDate",
-                                                            ev.target.value,
-                                                        )
-                                                    }
-                                                />
+                                                <div className="flex gap-2">
+                                                    <input className="font-medium text-foreground bg-background border px-2 py-1 rounded w-1/3" value={e.courseCode} placeholder="Code" onChange={(ev) => updatePreviewData("exams", i, "courseCode", ev.target.value)} />
+                                                    <input className="font-medium text-foreground bg-background border px-2 py-1 rounded w-2/3" value={e.courseName || ""} placeholder="Course Name" onChange={(ev) => updatePreviewData("exams", i, "courseName", ev.target.value)} />
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <input type="number" className="text-muted-foreground font-mono text-xs bg-background border px-2 py-1 rounded w-1/2" value={e.totalStudents} placeholder="Total Std" onChange={(ev) => updatePreviewData("exams", i, "totalStudents", parseInt(ev.target.value)||0)} />
+                                                    <input type="number" className="text-muted-foreground font-mono text-xs bg-background border px-2 py-1 rounded w-1/2" value={e.pwdStudents || ""} placeholder="PWD Std" onChange={(ev) => updatePreviewData("exams", i, "pwdStudents", parseInt(ev.target.value)||0)} />
+                                                </div>
+                                                <div className="flex gap-2">
+                                                    <input className="text-muted-foreground font-mono text-xs bg-background border px-2 py-1 rounded w-1/2" value={e.examDate} placeholder="YYYY-MM-DD" onChange={(ev) => updatePreviewData("exams", i, "examDate", ev.target.value)} />
+                                                    <input className="text-muted-foreground font-mono text-xs bg-background border px-2 py-1 rounded w-1/4" value={e.startTime || ""} placeholder="HH:MM" onChange={(ev) => updatePreviewData("exams", i, "startTime", ev.target.value)} />
+                                                    <input type="number" className="text-muted-foreground font-mono text-xs bg-background border px-2 py-1 rounded w-1/4" value={e.durationMinutes || ""} placeholder="Mins" onChange={(ev) => updatePreviewData("exams", i, "durationMinutes", parseInt(ev.target.value)||0)} />
+                                                </div>
                                             </>
                                         ) : (
                                             <>
-                                                <span className="font-medium text-foreground">
-                                                    {e.courseCode}
+                                                <div className="flex justify-between items-start">
+                                                    <span className="font-bold text-foreground">
+                                                        {e.courseCode}
+                                                    </span>
+                                                    <span className="text-muted-foreground font-mono text-[10px] bg-background px-1.5 py-0.5 rounded border">
+                                                        {e.examDate} {e.startTime} ({e.durationMinutes}m)
+                                                    </span>
+                                                </div>
+                                                <span className="text-muted-foreground text-xs line-clamp-1">
+                                                    {e.courseName || "Unknown Course"}
                                                 </span>
-                                                <span className="text-muted-foreground font-mono text-xs">
-                                                    {e.examDate}
-                                                </span>
+                                                <div className="flex items-center gap-2 mt-1">
+                                                    <span className="text-xs text-muted-foreground bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">
+                                                        {e.totalStudents} Pax
+                                                    </span>
+                                                    {e.pwdStudents > 0 && (
+                                                        <span className="text-xs text-amber-600 bg-amber-500/10 px-2 py-0.5 rounded-full font-medium">
+                                                            {e.pwdStudents} PWD
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </>
                                         )}
                                     </div>

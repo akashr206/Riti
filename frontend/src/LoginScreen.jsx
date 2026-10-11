@@ -210,7 +210,9 @@ export default function LoginScreen({ onLogin }) {
                                             onValueChange={(value) => setSelectedFaculty(value)}
                                         >
                                             <SelectTrigger className="w-full bg-background border border-input rounded-xl pl-10 h-12 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:border-primary shadow-sm cursor-pointer data-[placeholder]:text-muted-foreground transition-all">
-                                                <SelectValue placeholder="Select your name..." />
+                                                <SelectValue placeholder="Select your name...">
+                                                    {selectedFaculty && facultyList.find(f => f.id.toString() === selectedFaculty)?.name}
+                                                </SelectValue>
                                             </SelectTrigger>
                                             <SelectContent className="rounded-xl shadow-lg border-border/40 bg-popover">
                                                 {facultyList.map((f) => (
@@ -264,6 +266,15 @@ export default function LoginScreen({ onLogin }) {
                                 {error}
                             </div>
                         )}
+
+                        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-xs text-center text-primary/80 mt-2 mb-2">
+                            <span className="font-semibold block mb-1">For testing purposes:</span>
+                            {role === "admin" ? (
+                                <span>Admin password is <code className="bg-primary/10 px-1.5 py-0.5 rounded font-mono text-primary font-bold">riti2026</code></span>
+                            ) : (
+                                <span>Lecturer password is <code className="bg-primary/10 px-1.5 py-0.5 rounded font-mono text-primary font-bold">lecturer123</code></span>
+                            )}
+                        </div>
 
                         <button
                             type="submit"

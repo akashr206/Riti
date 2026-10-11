@@ -100,7 +100,7 @@
   --sidebar-accent-foreground: oklch(0.9191 0.0029 84.5595);
   --sidebar-border: oklch(0.3112 0.0144 256.7826);
   --sidebar-ring: oklch(0.6802 0.0998 260.1206);
-  --font-sans: Outfit, sans-serif;
+  --font-sans: "Poppins", sans-serif;
   --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   --font-mono: Geist Mono, ui-monospace, monospace;
   --radius: 0.25rem;
